@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use T-Mem in your research, please cite the paper below."
+title: "T-Mem: Memory That Anticipates, Not Archives"
+authors:
+  - family-names: Guo
+    given-names: Weidong
+  - family-names: Wang
+    given-names: Dakai
+  - family-names: Wang
+    given-names: Zixuan
+  - family-names: Liu
+    given-names: Hui
+  - family-names: Xu
+    given-names: Yu
+preferred-citation:
+  type: conference-paper
+  title: "T-Mem: Memory That Anticipates, Not Archives"
+  authors:
+    - family-names: Guo
+      given-names: Weidong
+    - family-names: Wang
+      given-names: Dakai
+    - family-names: Wang
+      given-names: Zixuan
+    - family-names: Liu
+      given-names: Hui
+    - family-names: Xu
+      given-names: Yu
+  collection-title: "Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing (EMNLP)"
+  year: 2026
+  url: "https://arxiv.org/abs/2606.15405"
+url: "https://github.com/Sherlockwz/T-Mem"
+repository-code: "https://github.com/Sherlockwz/T-Mem"
+license: MIT

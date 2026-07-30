@@ -1,0 +1,31 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environment & secrets
+.env
+*.env.local
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Results & outputs (generated at runtime)
+results/
+data/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Pickle / binary artefacts (generated indexes)
+*.pkl
+*.npz
