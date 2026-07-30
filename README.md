@@ -6,6 +6,8 @@
 
 [![Paper](https://img.shields.io/badge/Paper-arXiv-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2606.15405)
 [![Code](https://img.shields.io/badge/Code-GitHub-181717?logo=github&logoColor=white)](https://github.com/Sherlockwz/T-Mem)
+[![Project Page](https://img.shields.io/badge/Blog-Project%20Page-4b6cb7?logo=readthedocs&logoColor=white)](https://sherlockwz.github.io/T-Mem/)
+[![Demo](https://img.shields.io/badge/Demo-Pipeline%20Explorer-7c3aed?logo=rocket&logoColor=white)](https://sherlockwz.github.io/T-Mem/demo/)
 [![Venue](https://img.shields.io/badge/Venue-EMNLP%202026-4b6cb7?logo=acclaim&logoColor=white)](https://arxiv.org/abs/2606.15405)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
