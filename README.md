@@ -8,7 +8,7 @@
 [![Code](https://img.shields.io/badge/Code-GitHub-181717?logo=github&logoColor=white)](https://github.com/Sherlockwz/T-Mem)
 [![Project Page](https://img.shields.io/badge/Blog-Project%20Page-4b6cb7?logo=readthedocs&logoColor=white)](https://sherlockwz.github.io/T-Mem/)
 [![Demo](https://img.shields.io/badge/Demo-Pipeline%20Explorer-7c3aed?logo=rocket&logoColor=white)](https://sherlockwz.github.io/T-Mem/demo/)
-[![Venue](https://img.shields.io/badge/Venue-EMNLP%202026-4b6cb7?logo=acclaim&logoColor=white)](https://arxiv.org/abs/2606.15405)
+[![Venue](https://img.shields.io/badge/Status-Under%20review-8a97b0?logo=acclaim&logoColor=white)](https://arxiv.org/abs/2606.15405)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
@@ -19,7 +19,7 @@
 
 - **[2026-07-31]** Code and project page released.
 - **[2026-06-15]** Paper available on [arXiv](https://arxiv.org/abs/2606.15405).
-- **[2026-05]** T-Mem accepted to **EMNLP 2026**. 🎉
+- **[2026-05]** T-Mem submitted to **EMNLP 2026** (under review).
 
 ---
 
@@ -267,12 +267,14 @@ T-Mem/
 If you find T-Mem useful in your research, please consider citing:
 
 ```bibtex
-@inproceedings{guo2026tmem,
-  title     = {T-Mem: Memory That Anticipates, Not Archives},
-  author    = {Guo, Weidong and Wang, Dakai and Wang, Zixuan and Liu, Hui and Xu, Yu},
-  booktitle = {Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
-  year      = {2026},
-  url       = {https://arxiv.org/abs/2606.15405},
+@misc{guo2026tmem,
+  title         = {T-Mem: Memory That Anticipates, Not Archives},
+  author        = {Guo, Weidong and Wang, Dakai and Wang, Zixuan and Liu, Hui and Xu, Yu},
+  year          = {2026},
+  eprint        = {2606.15405},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2606.15405},
 }
 ```
 

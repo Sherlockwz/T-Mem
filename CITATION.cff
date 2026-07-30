@@ -13,7 +13,7 @@ authors:
   - family-names: Xu
     given-names: Yu
 preferred-citation:
-  type: conference-paper
+  type: article
   title: "T-Mem: Memory That Anticipates, Not Archives"
   authors:
     - family-names: Guo
@@ -26,7 +26,8 @@ preferred-citation:
       given-names: Hui
     - family-names: Xu
       given-names: Yu
-  collection-title: "Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing (EMNLP)"
+  journal: "arXiv preprint arXiv:2606.15405"
+  notes: "Under review at EMNLP 2026."
   year: 2026
   url: "https://arxiv.org/abs/2606.15405"
 url: "https://github.com/Sherlockwz/T-Mem"
