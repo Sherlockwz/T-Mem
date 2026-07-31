@@ -137,6 +137,30 @@
   .runlocal{margin-top:28px}
   pre{background:#080e1a;border:1px solid var(--line);border-radius:12px;padding:18px;
     overflow-x:auto;font-family:"IBM Plex Mono";font-size:12.5px;color:#c8d3ea;line-height:1.6}
+
+  /* view switcher */
+  .viewtabs{display:inline-flex;gap:4px;margin-top:22px;padding:4px;border:1px solid var(--line);
+    border-radius:11px;background:var(--ink-2)}
+  .viewtab{font-family:"Space Grotesk";font-size:14px;font-weight:500;color:var(--muted);
+    background:transparent;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;transition:color .2s,background .2s}
+  .viewtab:hover{color:var(--paper)}
+  .viewtab.active{color:#08101d;background:var(--grad-assoc);font-weight:600}
+
+  /* run-local steps */
+  .steps{counter-reset:step;margin-top:8px}
+  .rstep{position:relative;border:1px solid var(--line);border-radius:12px;padding:18px 20px 18px 56px;
+    background:var(--ink-2);margin-bottom:14px}
+  .rstep::before{counter-increment:step;content:counter(step);position:absolute;left:16px;top:18px;
+    width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+    font-family:"IBM Plex Mono";font-size:13px;font-weight:600;color:#08101d;background:var(--grad-assoc)}
+  .rstep h3{font-size:16px;margin:0 0 4px}
+  .rstep p{font-size:13.5px;color:var(--muted);margin:0 0 12px}
+  .rstep p:last-child{margin-bottom:0}
+  .rstep pre{margin:0}
+  .rstep .path{font-family:"IBM Plex Mono";font-size:12.5px;color:var(--assoc-a)}
+  .rl-note{font-size:13.5px;color:var(--muted);max-width:760px;margin:0 0 22px}
+  .rl-foot{margin-top:8px;font-size:13.5px;color:var(--muted)}
+
   footer{padding:36px 0 56px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13px;text-align:center;margin-top:40px}
   footer a{color:var(--muted)}
   .loading{color:var(--muted);padding:40px 0;font-family:"IBM Plex Mono";font-size:14px}
@@ -159,7 +183,11 @@
   <div class="eyebrow">Pipeline Explorer</div>
   <h1>Watch a conversation become memory</h1>
   <p class="tagline">A real LoCoMo conversation, walked through the T-Mem write pipeline stage by stage — segmented scenes, extracted facts, and all four trigger families. Then a few real questions answered from the memory graph.</p>
-  <div class="notice"><b>Pre-computed artifacts.</b> This explorer renders stored outputs from the paper's runs (memory-construction LLM: GPT-4.1-mini; encoder: bge-m3). Building memory live needs LLM API keys, so use the <b>Run locally</b> snippet below to reproduce it end-to-end.</div>
+  <div class="viewtabs">
+    <button class="viewtab active" id="tab-explore" onclick="setView('explore')">Explorer</button>
+    <button class="viewtab" id="tab-runlocal" onclick="setView('runlocal')">Run locally</button>
+  </div>
+  <div class="notice" id="notice"><b>Pre-computed artifacts.</b> This explorer renders stored outputs from the paper's runs (memory-construction LLM: GPT-4.1-mini; encoder: bge-m3). Building memory live needs LLM API keys — the <b>Run locally</b> tab shows how to reproduce it end-to-end.</div>
 </div></header>
 
 <div class="wrap" id="app"><div class="loading">Loading pipeline…</div></div>
@@ -181,7 +209,7 @@ const STAGES = [
   {id:"qa",      n:"06", lbl:"Retrieve & answer",cls:"",     tag:"read time",   tagcls:"",  sub:"At query time a top-down topic → scene → item cascade fuses lexical and dense rankings (RRF). Below are real questions answered from this conversation's memory."},
 ];
 
-let DATA=null, sceneIdx=0, stage="turns";
+let DATA=null, sceneIdx=0, stage="turns", view="explore";
 
 function esc(s){return (s==null?"":String(s)).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
 function sceneTitle(subj){
@@ -191,7 +219,15 @@ function sceneTitle(subj){
   return t||subj||"Scene";
 }
 
+function setView(v){
+  view=v;
+  document.getElementById("tab-explore").classList.toggle("active",v==="explore");
+  document.getElementById("tab-runlocal").classList.toggle("active",v==="runlocal");
+  render();
+}
+
 function render(){
+  if(view==="runlocal"){renderRunLocal();return;}
   const app=document.getElementById("app");
   const c=DATA.conversation, s=DATA.scenes[sceneIdx];
   app.innerHTML = `
@@ -267,17 +303,7 @@ function renderStage(){
         <div class="a"><b>${esc(q.answer)}</b></div>
         <div class="ret"><span>retrieved <b>${q.n_scenes}</b> scenes</span><span><b>${q.n_items}</b> items</span><span><b>${q.n_turns}</b> evidence turns</span></div>
       </div>`).join('')}
-      <div class="runlocal">
-        <p class="panel-sub" style="margin-bottom:10px">Reproduce the full build + evaluation locally:</p>
-        <pre>git clone https://github.com/Sherlockwz/T-Mem.git
-cd T-Mem && pip install -r requirements.txt
-
-# 1. build the memory graph (scenes → items → triggers → indexes)
-bash scripts/build_memory.sh --mode locomo --tag my_run
-
-# 2. evaluate with hierarchical retrieval + LLM-as-judge
-bash scripts/eval_locomo.sh --resume results/&lt;experiment_dir&gt;</pre>
-      </div>`;
+      <p class="rl-foot">Want to answer your own questions over this memory? The <a href="#" onclick="setView('runlocal');return false;" style="color:var(--assoc-a)">Run locally</a> tab shows how to build and query it end-to-end.</p>`;
   }
 
   document.getElementById("stagebody").innerHTML = `
@@ -291,9 +317,57 @@ bash scripts/eval_locomo.sh --resume results/&lt;experiment_dir&gt;</pre>
 function pickScene(i){sceneIdx=i;render();}
 function pickStage(id){stage=id;render();}
 
-fetch("demo_data.json").then(r=>r.json()).then(d=>{DATA=d;render();})
+function renderRunLocal(){
+  document.getElementById("app").innerHTML = `
+    <p class="rl-note">The online explorer shows pre-computed artifacts. To build memory over your own conversations — or reproduce the paper's benchmarks end to end — run the pipeline locally. It needs an LLM API key (OpenAI, or Tencent Venus internally) and the <span class="mono">bge-m3</span> encoder.</p>
+    <div class="steps">
+      <div class="rstep">
+        <h3>Clone &amp; install</h3>
+        <p>Python 3.10+ recommended.</p>
+        <pre>git clone https://github.com/Sherlockwz/T-Mem.git
+cd T-Mem
+pip install -r requirements.txt</pre>
+      </div>
+      <div class="rstep">
+        <h3>Set your API key</h3>
+        <p>The construction and QA LLMs read credentials from a git-ignored <span class="mono">.env</span>.</p>
+        <pre># OpenAI backend
+export OPENAI_API_KEY="sk-..."
+
+# or the Tencent Venus backend (internal)
+export ENV_VENUS_OPENAPI_SECRET_ID="..."
+export ENV_VENUS_OPENAPI_SECRET_KEY="..."</pre>
+      </div>
+      <div class="rstep">
+        <h3>Add the benchmark data</h3>
+        <p>Datasets aren't redistributed here. Drop them under <span class="mono">benchmark_eval/</span>:</p>
+        <pre>benchmark_eval/locomo/data/locomo10.json
+benchmark_eval/locomo_plus/data/locomo_plus.json
+benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json</pre>
+      </div>
+      <div class="rstep">
+        <h3>Build the memory graph</h3>
+        <p>Runs the four write stages you just explored: scenes &rarr; topics &rarr; items &rarr; the four trigger families, then builds the BM25 + dense indexes.</p>
+        <pre>bash scripts/build_memory.sh --mode locomo --tag my_run</pre>
+      </div>
+      <div class="rstep">
+        <h3>Retrieve &amp; evaluate</h3>
+        <p>Runs the top-down topic &rarr; scene &rarr; item cascade with associative-trigger augmentation, generates answers, and scores them with the LLM-as-judge.</p>
+        <pre>bash scripts/eval_locomo.sh --resume results/&lt;experiment_dir&gt;</pre>
+        <p class="rl-foot">Outputs land in <span class="path">results/&lt;experiment_dir&gt;/</span> — <span class="mono">responses.json</span> plus per-conversation scenes, items, and triggers, exactly the artifacts this explorer renders.</p>
+      </div>
+    </div>
+    <p class="rl-foot" style="margin-top:18px">Swap <span class="mono">--mode locomo</span> for <span class="mono">locomo_plus</span> or <span class="mono">lme</span> to run the other benchmarks. Full options are in the <a href="https://github.com/Sherlockwz/T-Mem" style="color:var(--assoc-a)">repository README</a>.</p>`;
+}
+
+fetch("demo_data.json").then(r=>r.json()).then(d=>{
+    DATA=d;
+    if(location.hash==="#runlocal"){setView("runlocal");}
+    else{render();}
+  })
   .catch(e=>{document.getElementById("app").innerHTML=
     '<div class="loading">Could not load demo data. Serve this folder over HTTP (e.g. <span class="mono">python3 -m http.server</span>) rather than opening the file directly.</div>';});
+window.addEventListener("hashchange",()=>{ if(DATA) setView(location.hash==="#runlocal"?"runlocal":"explore"); });
 </script>
 </body>
 </html>

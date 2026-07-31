@@ -145,6 +145,24 @@
   footer{padding:40px 0 60px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13px;text-align:center}
   footer a{color:var(--muted)}
 
+  /* explorer preview frame */
+  .preview{position:relative;margin:8px auto 22px;max-width:920px;border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;background:var(--ink-2);
+    box-shadow:0 30px 80px -40px rgba(168,85,247,.5)}
+  .preview .bar{display:flex;align-items:center;gap:7px;padding:11px 15px;border-bottom:1px solid var(--line-2);
+    background:rgba(255,255,255,.02)}
+  .preview .bar i{width:11px;height:11px;border-radius:50%;background:#2b3852;display:inline-block}
+  .preview .bar .u{margin-left:12px;font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  .preview .frame{position:relative;height:460px;background:var(--ink)}
+  .preview iframe{width:100%;height:100%;border:0;display:block}
+  .preview .mask{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;
+    padding-bottom:26px;text-decoration:none;
+    background:linear-gradient(180deg,transparent 55%,rgba(11,18,32,.55));opacity:0;transition:opacity .25s}
+  .preview .frame:hover .mask{opacity:1}
+  .preview .mask span{font-family:"Space Grotesk";font-weight:600;font-size:15px;color:#08101d;
+    background:var(--grad-assoc);border-radius:999px;padding:11px 22px}
+  @media(max-width:560px){.preview .frame{height:340px}}
+
   @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
   @media(max-width:560px){.cell{min-height:120px;padding:14px}.axis-y{left:-78px}}
 </style>
@@ -319,11 +337,26 @@
 </div></section>
 
 <!-- EXPLORER CTA -->
-<section><div class="wrap" style="text-align:center">
-  <div class="sec-eyebrow" style="justify-content:center">Try it</div>
+<section id="demo"><div class="wrap" style="text-align:center">
+  <div class="sec-eyebrow" style="justify-content:center">Pipeline Explorer</div>
   <h2>Watch a real conversation become memory</h2>
-  <p class="lead" style="margin:0 auto 24px">The Pipeline Explorer walks a real LoCoMo conversation through T-Mem stage by stage — scenes, extracted facts, and all four trigger families — using pre-computed artifacts from the paper's runs.</p>
-  <a class="btn primary" href="demo/index.html" style="font-size:15px;padding:13px 24px">Open the Pipeline Explorer →</a>
+  <p class="lead" style="margin:0 auto 26px">Browse pre-computed artifacts from our paper's runs — watch how T-Mem segments a real LoCoMo conversation into scenes, distills atomic and connected facts, and instantiates all four trigger families (Entity, Bridge, Scene, Horizon), then answers real questions from the memory graph, step by step.</p>
+
+  <div class="preview">
+    <div class="bar"><i></i><i></i><i></i><span class="u">t-mem · pipeline explorer</span></div>
+    <div class="frame">
+      <iframe src="demo/index.html" title="T-Mem Pipeline Explorer preview" loading="lazy" tabindex="-1"></iframe>
+      <a class="mask" href="demo/index.html"><span>Open full demo →</span></a>
+    </div>
+  </div>
+
+  <div class="btns" style="margin-top:4px">
+    <a class="btn primary" href="demo/index.html" style="font-size:15px;padding:13px 24px">Open Full Demo →</a>
+    <a class="btn" href="demo/index.html#runlocal" style="font-size:15px;padding:13px 24px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l3 3-3 3"/><path d="M13 15h3"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+      Run Locally
+    </a>
+  </div>
 </div></section>
 
 <!-- CITE -->
