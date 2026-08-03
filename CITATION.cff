@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use T-Mem in your research, please cite the paper below."
+title: "T-Mem: Memory That Anticipates, Not Archives"
+authors:
+  - family-names: Guo
+    given-names: Weidong
+  - family-names: Wang
+    given-names: Dakai
+  - family-names: Wang
+    given-names: Zixuan
+  - family-names: Liu
+    given-names: Hui
+  - family-names: Xu
+    given-names: Yu
+preferred-citation:
+  type: article
+  title: "T-Mem: Memory That Anticipates, Not Archives"
+  authors:
+    - family-names: Guo
+      given-names: Weidong
+    - family-names: Wang
+      given-names: Dakai
+    - family-names: Wang
+      given-names: Zixuan
+    - family-names: Liu
+      given-names: Hui
+    - family-names: Xu
+      given-names: Yu
+  journal: "arXiv preprint arXiv:2606.15405"
+  notes: "Under review at EMNLP 2026."
+  year: 2026
+  url: "https://arxiv.org/abs/2606.15405"
+url: "https://github.com/Sherlockwz/T-Mem"
+repository-code: "https://github.com/Sherlockwz/T-Mem"
+license: MIT

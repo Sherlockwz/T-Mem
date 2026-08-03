@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>T-Mem · Pipeline Explorer</title>
+<meta name="description" content="Walk a real LoCoMo conversation through the T-Mem pipeline: scenes, extracted facts, and all four trigger families — using pre-computed artifacts from the paper's runs." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0B1220;--ink-2:#131C2E;--ink-3:#1B2740;
+    --paper:#E8ECF5;--muted:#8A97B0;
+    --descr:#93a7ff;--assoc-a:#22D3EE;--assoc-b:#A855F7;
+    --line:rgba(255,255,255,.10);--line-2:rgba(255,255,255,.06);
+    --grad-assoc:linear-gradient(105deg,var(--assoc-a),var(--assoc-b));
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--ink);color:var(--paper);
+    font-family:"Inter",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(1000px 500px at 85% -10%,rgba(168,85,247,.09),transparent 60%),radial-gradient(800px 450px at 5% 0%,rgba(34,211,238,.07),transparent 55%)}
+  a{color:inherit}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  h1,h2,h3{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 22px}
+
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+    background:rgba(11,18,32,.72);border-bottom:1px solid var(--line-2)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .brand{font-family:"Space Grotesk";font-weight:700;font-size:17px;text-decoration:none}
+  .brand b{background:var(--grad-assoc);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .navlinks{display:flex;gap:20px;font-size:14px;color:var(--muted)}
+  .navlinks a{text-decoration:none;transition:color .2s}.navlinks a:hover{color:var(--paper)}
+  @media(max-width:720px){.navlinks a.hidemob{display:none}}
+
+  header{padding:40px 0 8px}
+  .eyebrow{font-family:"IBM Plex Mono";font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  h1{font-size:clamp(26px,4vw,40px);margin:0}
+  .tagline{color:var(--muted);max-width:720px;margin-top:12px;font-size:15.5px}
+  .notice{margin:20px 0 4px;padding:12px 16px;border:1px solid var(--line);border-radius:10px;
+    background:var(--ink-2);font-size:13.5px;color:var(--muted)}
+  .notice b{color:var(--paper);font-weight:600}
+
+  /* conversation meta chips */
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 4px}
+  .chip{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted);border:1px solid var(--line);
+    border-radius:8px;padding:6px 11px;background:var(--ink-2)}
+  .chip b{color:var(--paper)}
+
+  /* scene picker */
+  .picker{display:flex;gap:8px;flex-wrap:wrap;margin:26px 0 8px}
+  .scenebtn{text-align:left;cursor:pointer;border:1px solid var(--line);background:var(--ink-2);
+    border-radius:10px;padding:10px 13px;max-width:230px;transition:border-color .2s,transform .12s;color:var(--paper)}
+  .scenebtn:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3)}
+  .scenebtn.active{border-color:transparent;background:var(--grad-assoc);color:#08101d}
+  .scenebtn .idx{font-family:"IBM Plex Mono";font-size:11px;opacity:.75}
+  .scenebtn .t{font-family:"Space Grotesk";font-size:13px;font-weight:500;margin-top:3px;line-height:1.3}
+
+  /* stage rail */
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:26px 0 22px;
+    border:1px solid var(--line-2);border-radius:12px;padding:8px;background:rgba(255,255,255,.02)}
+  .step{flex:1;min-width:130px;cursor:pointer;border-radius:9px;padding:11px 13px;transition:background .2s;border:1px solid transparent}
+  .step:hover{background:rgba(255,255,255,.04)}
+  .step.active{background:var(--ink-3);border-color:var(--line)}
+  .step .n{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted);letter-spacing:.08em}
+  .step .lbl{font-family:"Space Grotesk";font-weight:500;font-size:14px;margin-top:3px}
+  .step.active .lbl{color:var(--paper)}
+  .step .lbl.assoc{background:var(--grad-assoc);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* panels */
+  .panel{display:none;animation:fade .35s ease}
+  .panel.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .panel-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .panel-h h2{font-size:22px;margin:0}
+  .panel-h .tag{font-family:"IBM Plex Mono";font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+  .panel-h .tag.d{color:var(--descr);border-color:rgba(147,167,255,.4)}
+  .panel-h .tag.a{color:var(--assoc-a);border-color:rgba(34,211,238,.4)}
+  .panel-sub{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:760px}
+
+  /* turns */
+  .turns{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--ink-2)}
+  .turn{display:flex;gap:12px;padding:11px 15px;border-bottom:1px solid var(--line-2);font-size:14px}
+  .turn:last-child{border-bottom:none}
+  .turn .sp{font-family:"IBM Plex Mono";font-size:12px;color:var(--assoc-a);min-width:78px;flex-shrink:0}
+  .turn .did{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted);min-width:52px;flex-shrink:0}
+
+  /* summary card */
+  .sumcard{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--ink-2)}
+  .sumcard .lab{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .sumcard .subj{font-family:"Space Grotesk";font-size:17px;font-weight:500;margin:8px 0 12px}
+  .sumcard p{font-size:14.5px;color:#cdd6ea;margin:0}
+
+  /* items */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .item{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--ink-2)}
+  .item .kind{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+    padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}
+  .item .kind.connected{color:var(--assoc-b);border-color:rgba(168,85,247,.4)}
+  .item .c{font-size:14px;margin:10px 0;color:#dbe2f2}
+  .kw{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .kw span{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted);border:1px solid var(--line-2);border-radius:5px;padding:2px 7px}
+  .trig-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line-2)}
+  .trig-row .tl{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+  .trig-row.entity .tl{color:var(--descr)}
+  .trig-row.bridge .tl{color:var(--assoc-a)}
+  .trig-chip{display:inline-block;font-size:12.5px;padding:3px 9px;border-radius:6px;margin:3px 4px 0 0}
+  .trig-row.entity .trig-chip{background:rgba(147,167,255,.10);border:1px solid rgba(147,167,255,.28)}
+  .trig-row.bridge .trig-chip{background:rgba(34,211,238,.09);border:1px solid rgba(34,211,238,.26)}
+
+  /* scene triggers */
+  .attrs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .attr{border:1px solid var(--line);border-radius:11px;padding:15px;background:var(--ink-2)}
+  .attr .k{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--descr)}
+  .attr .v{font-size:14px;margin-top:6px;color:#dbe2f2}
+  .channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:4px}
+  .chan{border:1px solid rgba(168,85,247,.28);border-radius:11px;padding:15px;
+    background:radial-gradient(120% 120% at 15% 15%,rgba(168,85,247,.10),transparent 70%)}
+  .chan .k{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;
+    background:var(--grad-assoc);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .chan .v{font-size:14px;margin-top:6px;color:#dbe2f2}
+  .chan .conf{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted);margin-top:8px}
+
+  /* QA */
+  .qa{border:1px solid var(--line);border-radius:12px;background:var(--ink-2);margin-bottom:12px;overflow:hidden}
+  .qa .q{padding:15px 17px;font-size:15px;font-weight:500;display:flex;gap:10px;align-items:flex-start}
+  .qa .q::before{content:"Q";font-family:"IBM Plex Mono";font-size:12px;color:var(--assoc-a);
+    border:1px solid rgba(34,211,238,.4);border-radius:5px;padding:2px 7px;flex-shrink:0}
+  .qa .a{padding:0 17px 14px 44px;color:#cdd6ea;font-size:14.5px}
+  .qa .a b{color:var(--paper)}
+  .qa .ret{display:flex;gap:16px;padding:10px 17px;border-top:1px solid var(--line-2);
+    font-family:"IBM Plex Mono";font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .qa .ret b{color:var(--paper)}
+
+  .runlocal{margin-top:28px}
+  pre{background:#080e1a;border:1px solid var(--line);border-radius:12px;padding:18px;
+    overflow-x:auto;font-family:"IBM Plex Mono";font-size:12.5px;color:#c8d3ea;line-height:1.6}
+
+  /* view switcher */
+  .viewtabs{display:inline-flex;gap:4px;margin-top:22px;padding:4px;border:1px solid var(--line);
+    border-radius:11px;background:var(--ink-2)}
+  .viewtab{font-family:"Space Grotesk";font-size:14px;font-weight:500;color:var(--muted);
+    background:transparent;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;transition:color .2s,background .2s}
+  .viewtab:hover{color:var(--paper)}
+  .viewtab.active{color:#08101d;background:var(--grad-assoc);font-weight:600}
+
+  /* run-local steps */
+  .steps{counter-reset:step;margin-top:8px}
+  .rstep{position:relative;border:1px solid var(--line);border-radius:12px;padding:18px 20px 18px 56px;
+    background:var(--ink-2);margin-bottom:14px}
+  .rstep::before{counter-increment:step;content:counter(step);position:absolute;left:16px;top:18px;
+    width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+    font-family:"IBM Plex Mono";font-size:13px;font-weight:600;color:#08101d;background:var(--grad-assoc)}
+  .rstep h3{font-size:16px;margin:0 0 4px}
+  .rstep p{font-size:13.5px;color:var(--muted);margin:0 0 12px}
+  .rstep p:last-child{margin-bottom:0}
+  .rstep pre{margin:0}
+  .rstep .path{font-family:"IBM Plex Mono";font-size:12.5px;color:var(--assoc-a)}
+  .rl-note{font-size:13.5px;color:var(--muted);max-width:760px;margin:0 0 22px}
+  .rl-foot{margin-top:8px;font-size:13.5px;color:var(--muted)}
+
+  footer{padding:36px 0 56px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13px;text-align:center;margin-top:40px}
+  footer a{color:var(--muted)}
+  .loading{color:var(--muted);padding:40px 0;font-family:"IBM Plex Mono";font-size:14px}
+  .hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <a class="brand" href="../index.html">T&#8209;<b>Mem</b></a>
+  <div class="navlinks">
+    <a class="hidemob" href="../index.html">Project Page</a>
+    <a href="https://arxiv.org/abs/2606.15405">Paper</a>
+    <a href="https://github.com/Sherlockwz/T-Mem">Code</a>
+  </div>
+</div></nav>
+
+<header><div class="wrap">
+  <div class="eyebrow">Pipeline Explorer</div>
+  <h1>Watch a conversation become memory</h1>
+  <p class="tagline">A real LoCoMo conversation, walked through the T-Mem write pipeline stage by stage — segmented scenes, extracted facts, and all four trigger families. Then a few real questions answered from the memory graph.</p>
+  <div class="viewtabs">
+    <button class="viewtab active" id="tab-explore" onclick="setView('explore')">Explorer</button>
+    <button class="viewtab" id="tab-runlocal" onclick="setView('runlocal')">Run locally</button>
+  </div>
+  <div class="notice" id="notice"><b>Pre-computed artifacts.</b> This explorer renders stored outputs from the paper's runs (memory-construction LLM: GPT-4.1-mini; encoder: bge-m3). Building memory live needs LLM API keys — the <b>Run locally</b> tab shows how to reproduce it end-to-end.</div>
+</div></header>
+
+<div class="wrap" id="app"><div class="loading">Loading pipeline…</div></div>
+
+<footer><div class="wrap">
+  T-Mem &nbsp;·&nbsp; Pipeline Explorer &nbsp;·&nbsp;
+  <a href="../index.html">Project Page</a> &nbsp;·&nbsp;
+  <a href="https://arxiv.org/abs/2606.15405">arXiv</a> &nbsp;·&nbsp;
+  <a href="https://github.com/Sherlockwz/T-Mem">GitHub</a>
+</div></footer>
+
+<script>
+const STAGES = [
+  {id:"turns",   n:"01", lbl:"Raw turns",       cls:"",      tag:"input",       tagcls:"",  sub:"The dialogue as recorded. T-Mem segments the stream into scenes by event closure, not by session boundary."},
+  {id:"scene",   n:"02", lbl:"Scene",           cls:"",      tag:"Q IV · descriptive", tagcls:"d", sub:"Each scene carries a title, a summary for the lexical/dense indices, and a third-person narrative read by the scene-level trigger extractors."},
+  {id:"items",   n:"03", lbl:"Items + Entity/Bridge", cls:"", tag:"Q I / Q II · item", tagcls:"a", sub:"Atomic and connected facts are distilled from the scene. Each carries an Entity trigger (descriptive) and a Bridge trigger (associative — a future situation where the fact would matter)."},
+  {id:"scenetrig",n:"04",lbl:"Scene Trigger",   cls:"",      tag:"Q IV · descriptive", tagcls:"d", sub:"Describes the exchange along four orthogonal attributes: situation, object, event, emotion."},
+  {id:"horizon", n:"05", lbl:"Horizon Trigger", cls:"assoc", tag:"Q III · associative", tagcls:"a", sub:"Projects the scene onto forward-looking channels, so a future query can reach it from a related-but-different situation. This is the associative coverage prior systems lack."},
+  {id:"qa",      n:"06", lbl:"Retrieve & answer",cls:"",     tag:"read time",   tagcls:"",  sub:"At query time a top-down topic → scene → item cascade fuses lexical and dense rankings (RRF). Below are real questions answered from this conversation's memory."},
+];
+
+let DATA=null, sceneIdx=0, stage="turns", view="explore";
+
+function esc(s){return (s==null?"":String(s)).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function sceneTitle(subj){
+  subj=subj||"";
+  // drop a trailing date like "July 15, 2023 ..." and any leftover punctuation
+  let t=subj.replace(/\s*[A-Z][a-z]+ \d+,? \d{4}.*/,"").replace(/[\s:;,(\-]+$/,"").trim();
+  return t||subj||"Scene";
+}
+
+function setView(v){
+  view=v;
+  document.getElementById("tab-explore").classList.toggle("active",v==="explore");
+  document.getElementById("tab-runlocal").classList.toggle("active",v==="runlocal");
+  render();
+}
+
+function render(){
+  if(view==="runlocal"){renderRunLocal();return;}
+  const app=document.getElementById("app");
+  const c=DATA.conversation, s=DATA.scenes[sceneIdx];
+  app.innerHTML = `
+    <div class="chips">
+      <span class="chip">conversation <b>#${c.id}</b></span>
+      <span class="chip">participants <b>${c.participants.map(p=>p.replace(/_0$/,'')).join(' · ')}</b></span>
+      <span class="chip"><b>${c.n_scenes_total}</b> scenes</span>
+      <span class="chip"><b>${c.n_items_total}</b> items extracted</span>
+      <span class="chip"><b>${c.n_l1_triggers}</b> item-level triggers</span>
+    </div>
+    <p class="hint">Pick a scene, then step through the pipeline. Showing ${DATA.scenes.length} representative scenes from this conversation.</p>
+    <div class="picker">${DATA.scenes.map((sc,i)=>`
+      <button class="scenebtn ${i===sceneIdx?'active':''}" onclick="pickScene(${i})">
+        <div class="idx">scene ${String(i+1).padStart(2,'0')}</div>
+        <div class="t">${esc(sceneTitle(sc.subject))}</div>
+      </button>`).join('')}
+    </div>
+
+    <div class="rail">${STAGES.map(st=>`
+      <div class="step ${st.id===stage?'active':''}" onclick="pickStage('${st.id}')">
+        <div class="n">${st.n}</div>
+        <div class="lbl ${st.cls}">${st.lbl}</div>
+      </div>`).join('')}
+    </div>
+
+    <div id="stagebody"></div>
+  `;
+  renderStage();
+}
+
+function renderStage(){
+  const s=DATA.scenes[sceneIdx];
+  const st=STAGES.find(x=>x.id===stage);
+  let body="";
+
+  if(stage==="turns"){
+    body=`<div class="turns">${s.turns.map(t=>`
+      <div class="turn"><span class="sp">${esc(t.speaker)}</span><span class="did">${esc(t.dia_id)}</span><span>${esc(t.content)}</span></div>`).join('')}</div>`;
+  }
+  else if(stage==="scene"){
+    body=`<div class="sumcard">
+      <div class="lab">Subject</div>
+      <div class="subj">${esc(s.subject)}</div>
+      <div class="lab">Summary → indexed (BM25 + dense)</div>
+      <p>${esc(s.summary)}</p>
+    </div>`;
+  }
+  else if(stage==="items"){
+    body=`<div class="grid">${s.items.map(it=>`
+      <div class="item">
+        <span class="kind ${it.kind}">${it.kind}</span>
+        <div class="c">${esc(it.content)}</div>
+        <div class="kw">${(it.keywords||[]).slice(0,4).map(k=>`<span>${esc(k)}</span>`).join('')}</div>
+        ${it.entity_triggers&&it.entity_triggers.length?`<div class="trig-row entity"><div class="tl">Entity trigger · descriptive</div>${it.entity_triggers.map(e=>`<span class="trig-chip">${esc(e)}</span>`).join('')}</div>`:''}
+        ${it.bridge_triggers&&it.bridge_triggers.length?`<div class="trig-row bridge"><div class="tl">Bridge trigger · associative</div>${it.bridge_triggers.map(b=>`<span class="trig-chip">${esc(b)}</span>`).join('')}</div>`:''}
+      </div>`).join('')||'<p class="panel-sub">No items were extracted from this scene.</p>'}</div>`;
+  }
+  else if(stage==="scenetrig"){
+    const a=s.scene_trigger||{};
+    const rows=[["situation",a.situation],["object",a.object],["event",a.event],["emotion",a.emotion]].filter(r=>r[1]);
+    body=`<div class="attrs">${rows.map(r=>`<div class="attr"><div class="k">${r[0]}</div><div class="v">${esc(r[1])}</div></div>`).join('')}</div>`;
+  }
+  else if(stage==="horizon"){
+    const h=s.horizon_trigger||[];
+    body=`<div class="channels">${h.map(ch=>`
+      <div class="chan"><div class="k">${esc(ch.channel.replace(/_/g,' '))}</div><div class="v">${esc(ch.text)}</div>
+      ${ch.confidence!=null?`<div class="conf">confidence ${ch.confidence}</div>`:''}</div>`).join('')||'<p class="panel-sub">No horizon channels for this scene.</p>'}</div>`;
+  }
+  else if(stage==="qa"){
+    body=`${DATA.qa_examples.map(q=>`
+      <div class="qa">
+        <div class="q">${esc(q.question)}</div>
+        <div class="a"><b>${esc(q.answer)}</b></div>
+        <div class="ret"><span>retrieved <b>${q.n_scenes}</b> scenes</span><span><b>${q.n_items}</b> items</span><span><b>${q.n_turns}</b> evidence turns</span></div>
+      </div>`).join('')}
+      <p class="rl-foot">Want to answer your own questions over this memory? The <a href="#" onclick="setView('runlocal');return false;" style="color:var(--assoc-a)">Run locally</a> tab shows how to build and query it end-to-end.</p>`;
+  }
+
+  document.getElementById("stagebody").innerHTML = `
+    <div class="panel show">
+      <div class="panel-h"><h2>${st.lbl}</h2>${st.tag?`<span class="tag ${st.tagcls}">${st.tag}</span>`:''}</div>
+      <p class="panel-sub">${st.sub}</p>
+      ${body}
+    </div>`;
+}
+
+function pickScene(i){sceneIdx=i;render();}
+function pickStage(id){stage=id;render();}
+
+function renderRunLocal(){
+  document.getElementById("app").innerHTML = `
+    <p class="rl-note">The online explorer shows pre-computed artifacts. To build memory over your own conversations — or reproduce the paper's benchmarks end to end — run the pipeline locally. It needs an LLM API key (OpenAI, or Tencent Venus internally) and the <span class="mono">bge-m3</span> encoder.</p>
+    <div class="steps">
+      <div class="rstep">
+        <h3>Clone &amp; install</h3>
+        <p>Python 3.10+ recommended.</p>
+        <pre>git clone https://github.com/Sherlockwz/T-Mem.git
+cd T-Mem
+pip install -r requirements.txt</pre>
+      </div>
+      <div class="rstep">
+        <h3>Set your API key</h3>
+        <p>The construction and QA LLMs read credentials from a git-ignored <span class="mono">.env</span>.</p>
+        <pre># OpenAI backend
+export OPENAI_API_KEY="sk-..."
+
+# or the Tencent Venus backend (internal)
+export ENV_VENUS_OPENAPI_SECRET_ID="..."
+export ENV_VENUS_OPENAPI_SECRET_KEY="..."</pre>
+      </div>
+      <div class="rstep">
+        <h3>Add the benchmark data</h3>
+        <p>Datasets aren't redistributed here. Drop them under <span class="mono">benchmark_eval/</span>:</p>
+        <pre>benchmark_eval/locomo/data/locomo10.json
+benchmark_eval/locomo_plus/data/locomo_plus.json
+benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json</pre>
+      </div>
+      <div class="rstep">
+        <h3>Build the memory graph</h3>
+        <p>Runs the four write stages you just explored: scenes &rarr; topics &rarr; items &rarr; the four trigger families, then builds the BM25 + dense indexes.</p>
+        <pre>bash scripts/build_memory.sh --mode locomo --tag my_run</pre>
+      </div>
+      <div class="rstep">
+        <h3>Retrieve &amp; evaluate</h3>
+        <p>Runs the top-down topic &rarr; scene &rarr; item cascade with associative-trigger augmentation, generates answers, and scores them with the LLM-as-judge.</p>
+        <pre>bash scripts/eval_locomo.sh --resume results/&lt;experiment_dir&gt;</pre>
+        <p class="rl-foot">Outputs land in <span class="path">results/&lt;experiment_dir&gt;/</span> — <span class="mono">responses.json</span> plus per-conversation scenes, items, and triggers, exactly the artifacts this explorer renders.</p>
+      </div>
+    </div>
+    <p class="rl-foot" style="margin-top:18px">Swap <span class="mono">--mode locomo</span> for <span class="mono">locomo_plus</span> or <span class="mono">lme</span> to run the other benchmarks. Full options are in the <a href="https://github.com/Sherlockwz/T-Mem" style="color:var(--assoc-a)">repository README</a>.</p>`;
+}
+
+fetch("demo_data.json").then(r=>r.json()).then(d=>{
+    DATA=d;
+    if(location.hash==="#runlocal"){setView("runlocal");}
+    else{render();}
+  })
+  .catch(e=>{document.getElementById("app").innerHTML=
+    '<div class="loading">Could not load demo data. Serve this folder over HTTP (e.g. <span class="mono">python3 -m http.server</span>) rather than opening the file directly.</div>';});
+window.addEventListener("hashchange",()=>{ if(DATA) setView(location.hash==="#runlocal"?"runlocal":"explore"); });
+</script>
+</body>
+</html>

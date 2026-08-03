@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>T-Mem: Memory That Anticipates, Not Archives</title>
+<meta name="description" content="T-Mem is the first long-term conversational memory that covers both descriptive and associative recall, reaching state-of-the-art on LoCoMo and LoCoMo-Plus. Preprint, under review." />
+<meta property="og:title" content="T-Mem: Memory That Anticipates, Not Archives" />
+<meta property="og:description" content="One trigger family per quadrant of the recall design space. State-of-the-art on LoCoMo and LoCoMo-Plus." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0B1220; --ink-2:#131C2E; --ink-3:#1B2740;
+    --paper:#E8ECF5; --muted:#8A97B0;
+    --descr:#4C6EF5; --assoc-a:#22D3EE; --assoc-b:#A855F7;
+    --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.06);
+    --maxw:1080px;
+    --grad-assoc:linear-gradient(105deg,var(--assoc-a),var(--assoc-b));
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--ink);color:var(--paper);
+    font-family:"Inter",system-ui,sans-serif;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(1200px 600px at 70% -10%,rgba(168,85,247,.10),transparent 60%),radial-gradient(900px 500px at 10% 0%,rgba(34,211,238,.08),transparent 55%);
+  }
+  a{color:inherit}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  h1,h2,h3{font-family:"Space Grotesk",sans-serif;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+
+  /* ---- nav ---- */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+    background:rgba(11,18,32,.72);border-bottom:1px solid var(--line-2)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .brand{font-family:"Space Grotesk";font-weight:700;letter-spacing:-.02em;font-size:18px}
+  .brand b{background:var(--grad-assoc);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .navlinks{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+  .navlinks a{text-decoration:none;transition:color .2s}
+  .navlinks a:hover{color:var(--paper)}
+  @media(max-width:720px){.navlinks{display:none}}
+
+  /* ---- hero ---- */
+  header{padding:64px 0 40px;text-align:center}
+  .eyebrow{font-family:"IBM Plex Mono";font-size:12.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:20px}
+  h1{font-size:clamp(34px,6vw,62px);margin:0 0 8px}
+  .sub{font-family:"Space Grotesk";font-weight:400;font-size:clamp(16px,2.4vw,22px);
+    color:var(--muted);max-width:640px;margin:14px auto 0}
+  .sub em{color:var(--paper);font-style:normal;font-weight:500}
+
+  /* ---- author / links ---- */
+  .authors{margin:26px auto 4px;font-size:15px;color:var(--paper)}
+  .authors span{white-space:nowrap}
+  .affil{color:var(--muted);font-size:13.5px;margin-top:2px}
+  .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:28px 0 4px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;
+    text-decoration:none;font-size:14px;font-weight:500;border:1px solid var(--line);
+    background:var(--ink-2);transition:transform .15s,border-color .2s,background .2s}
+  .btn:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.28)}
+  .btn.primary{background:var(--grad-assoc);color:#08101d;border:none;font-weight:600}
+  .btn svg{width:16px;height:16px}
+
+  /* ---- quadrant signature ---- */
+  .quad-wrap{margin:52px auto 0;max-width:760px}
+  .quad-cap{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted);
+    text-align:center;letter-spacing:.04em;margin-bottom:16px}
+  .quad{position:relative;border:1px solid var(--line);border-radius:16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);overflow:hidden}
+  .quad-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  .cell{position:relative;min-height:150px;padding:20px;cursor:default;
+    border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);
+    transition:background .3s}
+  .cell:nth-child(2n){border-right:none}
+  .cell:nth-child(n+3){border-bottom:none}
+  .cell .qid{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted);letter-spacing:.1em}
+  .cell .fam{font-family:"Space Grotesk";font-weight:600;font-size:19px;margin:6px 0 6px}
+  .cell .desc{font-size:13px;color:var(--muted);line-height:1.5}
+  .cell .tag{display:inline-block;margin-top:10px;font-family:"IBM Plex Mono";font-size:11px;
+    padding:3px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+  /* descriptive (right col) settled blue; associative (left col) glowing */
+  .cell.assoc{background:radial-gradient(120% 120% at 20% 20%,rgba(168,85,247,.14),transparent 70%)}
+  .cell.assoc .fam{background:var(--grad-assoc);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .cell.descr .fam{color:#93a7ff}
+  .cell:hover{background:rgba(255,255,255,.04)}
+  .cell.assoc:hover{background:radial-gradient(120% 120% at 20% 20%,rgba(168,85,247,.24),transparent 70%)}
+  .axis{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted)}
+  .axis.top{display:flex;justify-content:space-around;padding:10px 0 4px}
+  .axis-y{position:absolute;left:-92px;top:50%;transform:rotate(-90deg);white-space:nowrap}
+  .quad-x{display:flex;justify-content:space-around;padding:8px 0 2px;
+    font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .legend{display:flex;gap:20px;justify-content:center;margin-top:16px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .dot.d{background:#93a7ff}.dot.a{background:linear-gradient(105deg,var(--assoc-a),var(--assoc-b))}
+
+  /* ---- sections ---- */
+  section{padding:56px 0;border-top:1px solid var(--line-2)}
+  .sec-eyebrow{font-family:"IBM Plex Mono";font-size:12px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  h2{font-size:clamp(24px,3.6vw,34px);margin:0 0 20px}
+  p.lead{font-size:17px;color:#cdd6ea;max-width:760px}
+  .abstract{font-size:16.5px;color:#cdd6ea;max-width:820px}
+  .abstract strong{color:var(--paper)}
+
+  /* contributions */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:8px}
+  .card{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--ink-2)}
+  .card .k{font-family:"IBM Plex Mono";font-size:12px;color:var(--assoc-a);letter-spacing:.08em}
+  .card h3{font-size:18px;margin:10px 0 8px}
+  .card p{font-size:14px;color:var(--muted);margin:0}
+
+  /* two-column contrast (descriptive vs associative) */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+  .half{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--ink-2)}
+  .half.d{border-color:rgba(147,167,255,.3)}
+  .half.a{border-color:rgba(168,85,247,.32);background:radial-gradient(120% 120% at 15% 10%,rgba(168,85,247,.10),var(--ink-2) 70%)}
+  .half .lab{font-family:"IBM Plex Mono";font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+  .half.d .lab{color:var(--descr)}
+  .half.a .lab{background:var(--grad-assoc);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .half h3{font-size:18px;margin:0 0 8px}
+  .half p{font-size:14px;color:#c3ccdf;margin:0 0 10px}
+  .half .eg{font-size:13px;color:var(--muted);border-left:2px solid var(--line);padding-left:12px;margin-top:10px}
+  @media(max-width:640px){.split{grid-template-columns:1fr}}
+
+  /* method write-stages */
+  .stages{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:22px}
+  .wstage{position:relative;border:1px solid var(--line);border-radius:13px;padding:18px;background:var(--ink-2)}
+  .wstage .st{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.08em;color:var(--muted)}
+  .wstage h3{font-size:16px;margin:7px 0 7px}
+  .wstage p{font-size:13.5px;color:var(--muted);margin:0}
+  .wstage.assoc{border-color:rgba(168,85,247,.3)}
+  .wstage .fam{display:inline-block;margin-top:10px;font-family:"IBM Plex Mono";font-size:11px;
+    padding:2px 8px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}
+  .wstage.assoc .fam{color:var(--assoc-a);border-color:rgba(34,211,238,.35)}
+
+  /* benchmark chips */
+  .bench{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:8px}
+  .bcard{border:1px solid var(--line);border-radius:13px;padding:18px;background:var(--ink-2)}
+  .bcard .bn{font-family:"Space Grotesk";font-weight:600;font-size:16px}
+  .bcard .bm{font-family:"IBM Plex Mono";font-size:11.5px;color:var(--muted);margin:3px 0 9px}
+  .bcard p{font-size:13.5px;color:var(--muted);margin:0}
+  .baserow{font-size:14px;color:#c3ccdf;margin-top:18px;line-height:1.8}
+  .baserow b{color:var(--paper);font-family:"Space Grotesk"}
+  .baserow .tagm{font-family:"IBM Plex Mono";font-size:12.5px;color:var(--muted)}
+
+  /* analysis insight blocks */
+  .insight{border:1px solid var(--line);border-radius:13px;padding:20px 22px;background:var(--ink-2);margin-top:14px}
+  .insight .h{font-family:"IBM Plex Mono";font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--assoc-a);margin-bottom:8px}
+  .insight h3{font-size:17px;margin:0 0 8px}
+  .insight p{font-size:14.5px;color:#c3ccdf;margin:0}
+  .insight p .em{color:var(--paper);font-weight:500}
+
+  /* figures */
+  figure{margin:26px 0 0;text-align:center}
+  figure img{max-width:100%;border-radius:12px;border:1px solid var(--line);background:#fff;padding:10px}
+  figcaption{font-size:13.5px;color:var(--muted);margin-top:12px;max-width:760px;
+    margin-left:auto;margin-right:auto;line-height:1.5}
+  /* two smaller figures side by side */
+  .figrow{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:26px;align-items:start}
+  .figrow figure{margin:0}
+  .figrow figcaption{max-width:none}
+  @media(max-width:720px){.figrow{grid-template-columns:1fr}}
+
+  /* results */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+  .stat{border:1px solid var(--line);border-radius:14px;padding:24px;background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)}
+  .stat .n{font-family:"Space Grotesk";font-weight:700;font-size:40px;letter-spacing:-.03em;
+    background:var(--grad-assoc);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat .l{font-size:13.5px;color:var(--muted);margin-top:4px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14.5px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line-2)}
+  th{font-family:"IBM Plex Mono";font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono"}
+  tr.ours{background:radial-gradient(140% 100% at 0% 50%,rgba(168,85,247,.12),transparent 60%)}
+  tr.ours td:first-child{font-weight:600}
+  .delta{color:var(--assoc-a);font-family:"IBM Plex Mono";font-size:13px}
+
+  /* bibtex */
+  pre{background:#080e1a;border:1px solid var(--line);border-radius:12px;padding:20px;
+    overflow-x:auto;font-family:"IBM Plex Mono";font-size:13px;color:#c8d3ea;line-height:1.6}
+  .copy{float:right;font-family:"IBM Plex Mono";font-size:12px;color:var(--muted);
+    background:var(--ink-3);border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer}
+  .copy:hover{color:var(--paper)}
+
+  footer{padding:40px 0 60px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13px;text-align:center}
+  footer a{color:var(--muted)}
+
+  /* explorer preview frame */
+  .preview{position:relative;margin:8px auto 22px;max-width:920px;border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;background:var(--ink-2);
+    box-shadow:0 30px 80px -40px rgba(168,85,247,.5)}
+  .preview .bar{display:flex;align-items:center;gap:7px;padding:11px 15px;border-bottom:1px solid var(--line-2);
+    background:rgba(255,255,255,.02)}
+  .preview .bar i{width:11px;height:11px;border-radius:50%;background:#2b3852;display:inline-block}
+  .preview .bar .u{margin-left:12px;font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  .preview .bar .open{margin-left:auto;font-family:"IBM Plex Mono";font-size:12px;text-decoration:none;
+    color:var(--assoc-a);border:1px solid rgba(34,211,238,.35);border-radius:7px;padding:4px 11px;
+    transition:background .2s,color .2s}
+  .preview .bar .open:hover{background:var(--grad-assoc);color:#08101d;border-color:transparent}
+  .preview .frame{position:relative;height:460px;background:var(--ink)}
+  /* iframe is interactive: scroll the wheel to move the demo inside the frame */
+  .preview iframe{width:100%;height:100%;border:0;display:block}
+  @media(max-width:560px){.preview .frame{height:340px}}
+
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  @media(max-width:560px){.cell{min-height:120px;padding:14px}.axis-y{left:-78px}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">T&#8209;<b>Mem</b></div>
+  <div class="navlinks">
+    <a href="#idea">Idea</a>
+    <a href="#method">Method</a>
+    <a href="#results">Results</a>
+    <a href="demo/index.html">Pipeline Explorer</a>
+    <a href="#cite">Cite</a>
+  </div>
+</div></nav>
+
+<header><div class="wrap">
+  <div class="eyebrow">Preprint · Under review at EMNLP 2026 &nbsp;·&nbsp; Long-Term Conversational Memory</div>
+  <h1>Memory That Anticipates,<br/>Not Archives</h1>
+  <p class="sub">The first conversational memory that covers <em>both</em> descriptive and associative recall — by rehearsing, at write time, the future cues under which each memory will be needed.</p>
+
+  <div class="authors">
+    <span>Weidong Guo</span> &nbsp; <span>Dakai Wang</span> &nbsp; <span>Zixuan Wang</span> &nbsp; <span>Hui Liu</span> &nbsp; <span>Yu Xu</span>
+    <div class="affil">Tencent</div>
+  </div>
+
+  <div class="btns">
+    <a class="btn primary" href="https://arxiv.org/abs/2606.15405">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      Paper (arXiv)
+    </a>
+    <a class="btn" href="https://github.com/Sherlockwz/T-Mem">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11 11 0 0 1 6 0C17 4.6 18 4.9 18 4.9c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/></svg>
+      Code
+    </a>
+    <a class="btn" href="demo/index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.9.7-2.2-.1-3a2.1 2.1 0 0 0-2.9 0z"/><path d="M12 15l-3-3a11 11 0 0 1 8-8l3 3a11 11 0 0 1-8 8z"/></svg>
+      Pipeline Explorer
+    </a>
+  </div>
+
+  <!-- SIGNATURE: quadrant map -->
+  <div class="quad-wrap">
+    <div class="quad-cap">The recall design space — prior systems cluster on the descriptive half; T-Mem places one trigger family in every quadrant.</div>
+    <div class="quad">
+      <div class="quad-x">← associative &nbsp;·&nbsp; orientation &nbsp;·&nbsp; descriptive →</div>
+      <div class="quad-grid">
+        <div class="cell assoc">
+          <div class="qid">Q II · item</div>
+          <div class="fam">Bridge Trigger</div>
+          <div class="desc">Projects a fact onto a future situation where it would matter — even when the wording is far away.</div>
+          <span class="tag">allergy → team-dinner venue</span>
+        </div>
+        <div class="cell descr">
+          <div class="qid">Q I · item</div>
+          <div class="fam">Entity Trigger</div>
+          <div class="desc">Names the fact with a superordinate concept, so surface-similar queries land on it.</div>
+          <span class="tag">"LGBTQ support group" → peer support</span>
+        </div>
+        <div class="cell assoc">
+          <div class="qid">Q III · scene</div>
+          <div class="fam">Horizon Trigger</div>
+          <div class="desc">Projects an exchange onto forward-looking dimensions, reachable from a related-but-different future query.</div>
+          <span class="tag">personal-arc · avoidance-habit</span>
+        </div>
+        <div class="cell descr">
+          <div class="qid">Q IV · scene</div>
+          <div class="fam">Scene Trigger</div>
+          <div class="desc">Describes the exchange along situation, object, event, and emotion.</div>
+          <span class="tag">situation · object · event · emotion</span>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="dot d"></i> Descriptive — reachable by similarity (prior work)</span>
+      <span><i class="dot a"></i> Associative — T-Mem's new coverage</span>
+    </div>
+  </div>
+</div></header>
+
+<!-- IDEA / ABSTRACT -->
+<section id="idea"><div class="wrap">
+  <div class="sec-eyebrow">The problem</div>
+  <h2>Similarity search only reaches half the memory</h2>
+  <p class="abstract">
+    Long-term memory lets a conversational agent stay coherent across sessions, follow through on
+    commitments made weeks earlier, and adapt to each user. But today's LLM-backed memory is
+    <strong>reachability-bounded</strong> by query–content similarity, lexical or dense. That works when a
+    query and a memory share surface features such as wording or named entities — the <strong>descriptive</strong>
+    regime. It misses an equally common regime where query and memory share no surface form and are tied only
+    by a latent semantic arc — the <strong>associative</strong> regime. Prevailing memory systems collectively
+    fail on this second half.
+  </p>
+  <p class="abstract" style="margin-top:18px">
+    <strong>T-Mem</strong> covers both. At each of two evidence granularities — single facts (<em>items</em>)
+    and full exchanges (<em>scenes</em>) — it instantiates one descriptive and one associative trigger family,
+    so every memory stays reachable from surface-similar <em>and</em> relevance-bound queries. These write-time
+    rehearsals — the engineering counterpart of <em>episodic future thinking</em> — are what we call
+    <strong>triggers</strong>.
+  </p>
+
+  <div class="split">
+    <div class="half d">
+      <div class="lab">Descriptive recall — solved</div>
+      <h3>Query restates the memory</h3>
+      <p>The query reuses the same wording, names the same entities, or anchors the same time and place. Nearest-neighbour search over BM25 or dense vectors finds it. Every prior memory system — flat RAG, graph memory, agentic and OS-style kernels — lives here.</p>
+      <div class="eg">“When did Caroline join the support group?” → the fact that mentions the support group.</div>
+    </div>
+    <div class="half a">
+      <div class="lab">Associative recall — the blind spot</div>
+      <h3>Query and memory share no surface</h3>
+      <p>What binds them is a latent arc — a causal link, or the continuation of a shared situation. The target lies far beyond any realistic top-<span class="mono">K</span> under similarity retrieval, so prior systems miss it. This is the half T-Mem is built to cover.</p>
+      <div class="eg">“What venue suits the team dinner?” → a fact recorded months earlier about a colleague’s allergy.</div>
+    </div>
+  </div>
+</div></section>
+
+<!-- CONTRIBUTIONS -->
+<section><div class="wrap">
+  <div class="sec-eyebrow">Contributions</div>
+  <h2>What's new</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="k">01 · framing</div>
+      <h3>A 2×2 recall space</h3>
+      <p>Granularity (item / scene) × orientation (descriptive / associative). Prior memory systems occupy only the descriptive half.</p>
+    </div>
+    <div class="card">
+      <div class="k">02 · method</div>
+      <h3>One trigger per quadrant</h3>
+      <p>Entity &amp; Scene cover the descriptive half; Bridge &amp; Horizon cover the associative half that similarity search cannot reach.</p>
+    </div>
+    <div class="card">
+      <div class="k">03 · architecture</div>
+      <h3>Triggers off the evidence path</h3>
+      <p>How a memory is reached is decoupled from what is reached. Triggers guide retrieval only; scenes and items remain the evidence.</p>
+    </div>
+    <div class="card">
+      <div class="k">04 · results</div>
+      <h3>State of the art, both benchmarks</h3>
+      <p>80.26% on LoCoMo (+3.25 pp) and 74.81% on LoCoMo-Plus, collapsing the cross-benchmark gap to a single-digit margin.</p>
+    </div>
+  </div>
+</div></section>
+
+<!-- METHOD -->
+<section id="method"><div class="wrap">
+  <div class="sec-eyebrow">Approach</div>
+  <h2>Construct, then retrieve top-down</h2>
+  <p class="lead">A four-stage write pipeline builds a typed memory graph over scenes, items, and topic labels. At read time, a top-down <span class="mono">topic → scene → item</span> cascade fuses lexical and dense rankings with RRF, and the associative triggers bypass the topic prefilter — so relevance-bound cues aren't gated by the very similarity test they're designed to escape.</p>
+  <figure>
+    <img src="assets/figure2.png" alt="T-Mem framework: construction pipeline and retrieval cascade" />
+    <figcaption><strong>Framework of T-Mem.</strong> The construction pipeline segments scenes, assigns topics, extracts items, and instantiates one trigger family per quadrant (scene-node colours indicate topic membership). The retrieval cascade performs top-down topic → scene → item selection with associative-trigger augmentation.</figcaption>
+  </figure>
+
+  <h3 style="font-size:19px;margin:38px 0 0">The write pipeline, stage by stage</h3>
+  <div class="stages">
+    <div class="wstage">
+      <div class="st">Stage 1 · segmentation</div>
+      <h3>Scenes &amp; topics</h3>
+      <p>A boundary-detector LLM segments the dialogue by <em>event closure</em>, not by session — one event can span sessions, one session can mix events. A topic module then tags each scene with growing, multi-label topics.</p>
+    </div>
+    <div class="wstage">
+      <div class="st">Stage 2 · extraction</div>
+      <h3>Atomic &amp; connected items</h3>
+      <p>Per topic, the extractor distils two item types in one call: <em>atomic</em> facts anchored to a single scene, and <em>connected</em> facts that preserve a cross-scene link before retrieval ever sees it.</p>
+    </div>
+    <div class="wstage assoc">
+      <div class="st">Stage 3 · item triggers</div>
+      <h3>Entity + Bridge</h3>
+      <p>Each item gets an <strong>Entity</strong> trigger (a superordinate concept, for surface-similar queries) and a <strong>Bridge</strong> trigger (a future situation where the fact would matter, with a one-clause rationale).</p>
+      <span class="fam">Q I descriptive · Q II associative</span>
+    </div>
+    <div class="wstage assoc">
+      <div class="st">Stage 4 · scene triggers</div>
+      <h3>Scene + Horizon</h3>
+      <p>Each scene gets a <strong>Scene</strong> trigger (situation, object, event, emotion) and a <strong>Horizon</strong> trigger that projects it onto forward-looking channels, reachable from a related-but-different future query.</p>
+      <span class="fam">Q IV descriptive · Q III associative</span>
+    </div>
+  </div>
+</div></section>
+
+<!-- BENCHMARKS -->
+<section><div class="wrap">
+  <div class="sec-eyebrow">Evaluation</div>
+  <h2>Benchmarks &amp; baselines</h2>
+  <p class="lead">Two long-term-memory benchmarks of multi-session dialogue spanning weeks to months. LoCoMo-Plus adds a <em>Cognitive</em> subset that probes exactly the associative axis — its cue and answer are bound by narrative or causal links, placing the target far beyond any realistic top-<span class="mono">K</span> under similarity retrieval.</p>
+  <div class="bench">
+    <div class="bcard">
+      <div class="bn">LoCoMo</div>
+      <div class="bm">10 conversations</div>
+      <p>Single-hop, Multi-hop, Temporal, and Open-domain questions over long multi-session chats.</p>
+    </div>
+    <div class="bcard">
+      <div class="bn">LoCoMo-Plus</div>
+      <div class="bm">Cognitive subset</div>
+      <p>Injects associative probes whose cue and answer share no surface form — the direct test of the blind spot.</p>
+    </div>
+    <div class="bcard">
+      <div class="bn">LongMemEval-S</div>
+      <div class="bm">500 instances</div>
+      <p>A large per-instance long-term memory benchmark, supported by the same build pipeline.</p>
+    </div>
+  </div>
+  <p class="baserow"><b>Compared against</b> &nbsp;<span class="tagm">Mem0 · Zep · Memobase · MemU · Supermemory · MIRIX · MemOS · HyperMem</span> on LoCoMo, and <span class="tagm">Mem0 · SeCom · A-Mem · MemOS · HyperMem</span> plus closed-source LLM references (GPT-4o, Gemini-2.5-Pro) on LoCoMo-Plus. Construction LLM: GPT-4.1-mini; encoder: bge-m3; judge follows each benchmark's official protocol.</p>
+</div></section>
+
+<!-- RESULTS -->
+<section id="results"><div class="wrap">
+  <div class="sec-eyebrow">Results</div>
+  <h2>State-of-the-art recall, lower token cost</h2>
+  <div class="stats">
+    <div class="stat"><div class="n">80.26%</div><div class="l">LoCoMo overall (LLM-judge) — +3.25 pp over the strongest baseline, HyperMem</div></div>
+    <div class="stat"><div class="n">74.81%</div><div class="l">LoCoMo-Plus overall — state-of-the-art on the associative benchmark</div></div>
+    <div class="stat"><div class="n">5.45 pp</div><div class="l">LoCoMo → LoCoMo-Plus gap — ~5× tighter than the strongest prior system</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Method</th><th>Single-hop</th><th>Multi-hop</th><th>Temporal</th><th>Open-dom.</th><th>Overall</th><th>F1</th></tr></thead>
+    <tbody>
+      <tr><td>Mem0</td><td class="num">73.33</td><td class="num">58.75</td><td class="num">52.34</td><td class="num">45.83</td><td class="num">64.57</td><td class="num">43.46</td></tr>
+      <tr><td>Memobase</td><td class="num">73.12</td><td class="num">64.65</td><td class="num">81.20</td><td class="num">53.12</td><td class="num">72.01</td><td class="num">50.18</td></tr>
+      <tr><td>MemOS</td><td class="num">81.09</td><td class="num">67.49</td><td class="num">75.18</td><td class="num">55.90</td><td class="num">75.80</td><td class="num">45.27</td></tr>
+      <tr><td>HyperMem</td><td class="num">84.34</td><td class="num">62.29</td><td class="num">79.44</td><td class="num">47.92</td><td class="num">77.01</td><td class="num">49.93</td></tr>
+      <tr class="ours"><td>T-Mem (ours)</td><td class="num">85.97</td><td class="num">69.15</td><td class="num">82.55</td><td class="num">55.21</td><td class="num">80.26</td><td class="num">51.96</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;color:var(--muted);margin-top:12px">LoCoMo LLM-as-judge accuracy (%), official pipeline. T-Mem is the global maximum on five of six columns (Open-domain narrowly trails MemOS by 0.69 pp). Baseline numbers for Mem0 / Memobase / MemOS from Li et&nbsp;al. 2025; a condensed selection is shown — see the paper for all eight systems.</p>
+
+  <div class="insight">
+    <div class="h">Reading the columns</div>
+    <h3>Each question type lines up with a design point</h3>
+    <p>Single-hop and Temporal map to the scene–item evidence layer, the Entity route, and the Scene trigger. Multi-hop maps to the Bridge route and the topic pre-filter, which together feed cross-scene evidence beyond a single similarity hit. Open-domain maps to persona traits, where T-Mem's Persona channel complements the evidence. <span class="em">The gains are where the design predicts them.</span></p>
+  </div>
+  <div class="insight">
+    <div class="h">Closing the associative gap</div>
+    <h3>The scene triggers carry LoCoMo-Plus</h3>
+    <p>On the associative benchmark, removing the scene-level <span class="em">Horizon</span> trigger costs up to 12.5 pp, and removing both scene triggers costs 22.2 pp — while the same ablations barely move LoCoMo. This is direct evidence that the associative half is what collapses the cross-benchmark gap to 5.45 pp, roughly five times tighter than the strongest prior system.</p>
+  </div>
+
+  <div class="figrow">
+    <figure>
+      <img src="assets/figure5_token_accuracy.png" alt="Input tokens vs accuracy: T-Mem reaches higher accuracy below HyperMem's token budget" />
+      <figcaption><strong>Efficiency.</strong> Input tokens vs. accuracy (log x-axis). Below HyperMem's token budget, T-Mem reaches higher accuracy on both benchmarks.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/figure3_ablation.png" alt="Component ablations on LoCoMo and LoCoMo-Plus" />
+      <figcaption><strong>Ablations.</strong> Smaller radius = greater impact. The scene triggers dominate on LoCoMo-Plus; no single switch dominates on LoCoMo.</figcaption>
+    </figure>
+  </div>
+</div></section>
+
+<!-- EXPLORER CTA -->
+<section id="demo"><div class="wrap" style="text-align:center">
+  <div class="sec-eyebrow" style="justify-content:center">Pipeline Explorer</div>
+  <h2>Watch a real conversation become memory</h2>
+  <p class="lead" style="margin:0 auto 26px">Browse pre-computed artifacts from our paper's runs — watch how T-Mem segments a real LoCoMo conversation into scenes, distills atomic and connected facts, and instantiates all four trigger families (Entity, Bridge, Scene, Horizon), then answers real questions from the memory graph, step by step.</p>
+
+  <div class="preview">
+    <div class="bar"><i></i><i></i><i></i><span class="u">t-mem · pipeline explorer</span><a class="open" href="demo/index.html" target="_blank" rel="noopener">open full demo ↗</a></div>
+    <div class="frame">
+      <iframe src="demo/index.html" title="T-Mem Pipeline Explorer preview" loading="lazy"></iframe>
+    </div>
+  </div>
+
+  <div class="btns" style="margin-top:4px">
+    <a class="btn primary" href="demo/index.html" style="font-size:15px;padding:13px 24px">Open Full Demo →</a>
+    <a class="btn" href="demo/index.html#runlocal" style="font-size:15px;padding:13px 24px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l3 3-3 3"/><path d="M13 15h3"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+      Run Locally
+    </a>
+  </div>
+</div></section>
+
+<!-- CITE -->
+<section id="cite"><div class="wrap">
+  <div class="sec-eyebrow">Citation</div>
+  <h2>BibTeX</h2>
+  <pre id="bib"><button class="copy" onclick="copyBib()">copy</button>@misc{guo2026tmem,
+  title         = {T-Mem: Memory That Anticipates, Not Archives},
+  author        = {Guo, Weidong and Wang, Dakai and Wang, Zixuan and Liu, Hui and Xu, Yu},
+  year          = {2026},
+  eprint        = {2606.15405},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2606.15405},
+}</pre>
+</div></section>
+
+<footer><div class="wrap">
+  T-Mem &nbsp;·&nbsp; Tencent &nbsp;·&nbsp; Preprint (under review) &nbsp;·&nbsp;
+  <a href="https://arxiv.org/abs/2606.15405">arXiv</a> &nbsp;·&nbsp;
+  <a href="https://github.com/Sherlockwz/T-Mem">GitHub</a> &nbsp;·&nbsp;
+  <a href="demo/index.html">Pipeline Explorer</a>
+</div></footer>
+
+<script>
+  function copyBib(){
+    const t=document.getElementById('bib').innerText.replace(/^copy\s*/,'');
+    navigator.clipboard.writeText(t).then(()=>{
+      const b=document.querySelector('.copy');b.textContent='copied ✓';
+      setTimeout(()=>b.textContent='copy',1500);
+    });
+  }
+</script>
+</body>
+</html>
