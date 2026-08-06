@@ -1,4 +1,4 @@
-"""Build trigger graph and embeddings from an existing T_mem experiment dir."""
+"""Build Entity/Bridge trigger graph and embeddings from an existing T_mem experiment dir."""
 
 from __future__ import annotations
 
@@ -131,8 +131,8 @@ async def build_for_conv(
     embed_elapsed = time.time() - t_embed
     log(f"Embedding done in {embed_elapsed:.1f}s")
 
-    graph_path = output_dir / f"trigger_graph_conv_{conv_id}.json"
-    emb_path = output_dir / f"trigger_embeddings_conv_{conv_id}.npz"
+    graph_path = output_dir / f"entity_bridge_graph_conv_{conv_id}.json"
+    emb_path = output_dir / f"entity_bridge_embeddings_conv_{conv_id}.npz"
     stats_path = output_dir / f"build_stats_conv_{conv_id}.json"
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -197,9 +197,9 @@ async def _amain(args):
     embed_provider = BGEM3EmbeddingProvider(model_name="bge-m3")
 
     cfg = ExtractorConfig(
-        l1_count_per_item=args.l1_per_item,
+        entity_bridge_count_per_item=args.entity_bridge_per_item,
         item_conf_threshold=args.item_conf_threshold,
-        l1_dedup_ratio=args.l1_dedup_ratio,
+        entity_bridge_dedup_ratio=args.entity_bridge_dedup_ratio,
         max_concurrent=args.max_concurrent,
         extract_retries=args.extract_retries,
     )
@@ -252,7 +252,7 @@ def main() -> int:
     ap.add_argument(
         "--output-dir",
         required=True,
-        help="Where to write trigger_graph_conv_*.json and trigger_embeddings_conv_*.npz",
+        help="Where to write entity_bridge_graph_conv_*.json and entity_bridge_embeddings_conv_*.npz",
     )
     ap.add_argument(
         "--only-convs",
@@ -265,12 +265,12 @@ def main() -> int:
     ap.add_argument("--llm-model", default=MODELS["memory_build"])
     ap.add_argument("--json-retries", type=int, default=5)
 
-    ap.add_argument("--l1-per-item", type=int, default=5,
-                    help="Target number of L1 triggers per memory item")
+    ap.add_argument("--entity-bridge-per-item", type=int, default=5,
+                    help="Target number of entity/bridge triggers per memory item")
     ap.add_argument("--item-conf-threshold", type=float, default=0.70,
-                    help="Min LLM-rated confidence for item-L1 edge")
-    ap.add_argument("--l1-dedup-ratio", type=float, default=0.90,
-                    help="rapidfuzz ratio threshold for L1 dedup")
+                    help="Min LLM-rated confidence for item-trigger edge")
+    ap.add_argument("--entity-bridge-dedup-ratio", type=float, default=0.90,
+                    help="rapidfuzz ratio threshold for entity/bridge dedup")
     ap.add_argument("--max-concurrent", type=int, default=14,
                     help="Concurrent LLM calls (matches venus pool hard cap 14)")
     ap.add_argument("--extract-retries", type=int, default=3,

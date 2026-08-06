@@ -1,6 +1,6 @@
-"""Trigger graph data structures (pure L1): nodes, edges, dedup, save/load.
-L1Trigger holds concept (Entity Trigger) + bridge (Bridge Trigger) + item_confidences.
-See T_mem.prompts.trigger_prompts for the L1/L2/L3 paper-vs-code naming mapping."""
+"""Trigger graph data structures (Entity/Bridge): nodes, edges, dedup, save/load.
+EntityBridgeTrigger holds concept (Entity Trigger route) + bridge (Bridge Trigger route) + item_confidences.
+See T_mem.prompts.trigger_prompts for the Entity/Bridge/Scene/Horizon paper-vs-code naming mapping."""
 
 from __future__ import annotations
 
@@ -17,11 +17,11 @@ except ImportError:  # pragma: no cover
     np = None  # type: ignore
 
 
-class L1Trigger:
-    """Entity-centric L1 trigger.
+class EntityBridgeTrigger:
+    """Item-level trigger covering both Entity (Q I) and Bridge (Q II) routes.
 
     Connected to one or more memory items via (item_id, confidence) pairs.
-    The L1's `quality` is max(confidence over its items).
+    The trigger's `quality` is max(confidence over its items).
     """
 
     __slots__ = (
@@ -44,7 +44,7 @@ class L1Trigger:
         trigger_id: Optional[str] = None,
         created_at: Optional[str] = None,
     ):
-        self.id = trigger_id or f"l1_{uuid.uuid4().hex[:12]}"
+        self.id = trigger_id or f"eb_{uuid.uuid4().hex[:12]}"
         self.concept = concept
         self.concept_norm = concept_norm
         self.bridge = bridge
@@ -67,8 +67,8 @@ class L1Trigger:
         if confidence > prev:
             self.item_confidences[item_id] = float(confidence)
 
-    def merge_from(self, other: "L1Trigger"):
-        """Absorb another L1 into this one (used during global dedup); first-seen concept wins."""
+    def merge_from(self, other: "EntityBridgeTrigger"):
+        """Absorb another trigger into this one (used during global dedup); first-seen concept wins."""
         for iid, conf in other.item_confidences.items():
             self.add_item(iid, conf)
         seen = set(self.activation_patterns)
@@ -113,7 +113,7 @@ class L1Trigger:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "L1Trigger":
+    def from_dict(cls, d: Dict[str, Any]) -> "EntityBridgeTrigger":
         return cls(
             concept=d["concept"],
             concept_norm=d.get("concept_norm", d["concept"].lower().strip()),
@@ -126,38 +126,38 @@ class L1Trigger:
 
 
 class TriggerGraph:
-    """Container of all L1 triggers for one conversation; stores item IDs (not content)."""
+    """Container of all Entity/Bridge triggers for one conversation; stores item IDs (not content)."""
 
     def __init__(
         self,
         conv_id: Optional[int] = None,
-        l1_triggers: Optional[Dict[str, L1Trigger]] = None,
+        entity_bridge_triggers: Optional[Dict[str, EntityBridgeTrigger]] = None,
     ):
         self.conv_id = conv_id
-        self.l1_triggers: Dict[str, L1Trigger] = dict(l1_triggers or {})
+        self.entity_bridge_triggers: Dict[str, EntityBridgeTrigger] = dict(entity_bridge_triggers or {})
 
-    def dedup_l1(self, similarity_threshold: float = 0.9) -> Dict[str, str]:
-        """Dedup L1 triggers via normalized + rapidfuzz match; returns old_id -> canonical_id map."""
+    def dedup_entity_bridge(self, similarity_threshold: float = 0.9) -> Dict[str, str]:
+        """Dedup Entity/Bridge triggers via normalized + rapidfuzz match; returns old_id -> canonical_id map."""
         try:
             from rapidfuzz import fuzz
         except ImportError:
             fuzz = None  # type: ignore
 
-        canonical: Dict[str, L1Trigger] = {}
+        canonical: Dict[str, EntityBridgeTrigger] = {}
         redirect: Dict[str, str] = {}
 
         # CRITICAL: iterate in deterministic created_at order so canonical pick is stable
-        ordered = sorted(self.l1_triggers.values(), key=lambda t: t.created_at)
+        ordered = sorted(self.entity_bridge_triggers.values(), key=lambda t: t.created_at)
 
-        for l1 in ordered:
+        for eb in ordered:
             merged = False
-            norm = l1.concept_norm
+            norm = eb.concept_norm
 
             if norm in canonical:
                 target = canonical[norm]
-                if target.id != l1.id:
-                    target.merge_from(l1)
-                    redirect[l1.id] = target.id
+                if target.id != eb.id:
+                    target.merge_from(eb)
+                    redirect[eb.id] = target.id
                 merged = True
                 continue
 
@@ -172,57 +172,57 @@ class TriggerGraph:
                 if (
                     best_key is not None
                     and best_score >= similarity_threshold
-                    and canonical[best_key].id != l1.id
+                    and canonical[best_key].id != eb.id
                 ):
-                    canonical[best_key].merge_from(l1)
-                    redirect[l1.id] = canonical[best_key].id
+                    canonical[best_key].merge_from(eb)
+                    redirect[eb.id] = canonical[best_key].id
                     merged = True
 
             if not merged:
-                canonical[norm] = l1
+                canonical[norm] = eb
 
-        self.l1_triggers = {t.id: t for t in canonical.values()}
+        self.entity_bridge_triggers = {t.id: t for t in canonical.values()}
         return redirect
 
-    def filter_l1_items(self, conf_threshold: float) -> None:
-        # NOTE: keep L1s that lost all items — their activation_patterns may still
+    def filter_entity_bridge_items(self, conf_threshold: float) -> None:
+        # NOTE: keep triggers that lost all items — their activation_patterns may still
         # contribute at recall time.
-        for l1 in self.l1_triggers.values():
-            l1.filter_items(conf_threshold)
+        for eb in self.entity_bridge_triggers.values():
+            eb.filter_items(conf_threshold)
 
     def stats(self) -> Dict[str, Any]:
-        n_l1 = len(self.l1_triggers)
-        item_fanout = [len(l1.item_confidences) for l1 in self.l1_triggers.values()]
+        n_entity_bridge = len(self.entity_bridge_triggers)
+        trigger_fanout = [len(eb.item_confidences) for eb in self.entity_bridge_triggers.values()]
         unique_items = {
             iid
-            for l1 in self.l1_triggers.values()
-            for iid in l1.item_confidences.keys()
+            for eb in self.entity_bridge_triggers.values()
+            for iid in eb.item_confidences.keys()
         }
         return {
             "conv_id": self.conv_id,
-            "n_l1": n_l1,
+            "n_entity_bridge": n_entity_bridge,
             "unique_items_covered": len(unique_items),
-            "avg_items_per_l1": (
-                round(sum(item_fanout) / max(1, n_l1), 2) if n_l1 else 0
+            "avg_items_per_entity_bridge": (
+                round(sum(trigger_fanout) / max(1, n_entity_bridge), 2) if n_entity_bridge else 0
             ),
-            "max_items_per_l1": max(item_fanout) if item_fanout else 0,
-            "l1_quality_distribution": _quality_dist(
-                [l1.quality for l1 in self.l1_triggers.values()]
+            "max_items_per_entity_bridge": max(trigger_fanout) if trigger_fanout else 0,
+            "entity_bridge_quality_distribution": _quality_dist(
+                [eb.quality for eb in self.entity_bridge_triggers.values()]
             ),
         }
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "conv_id": self.conv_id,
-            "l1_triggers": {tid: t.to_dict() for tid, t in self.l1_triggers.items()},
+            "entity_bridge_triggers": {tid: t.to_dict() for tid, t in self.entity_bridge_triggers.items()},
             "stats": self.stats(),
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TriggerGraph":
         g = cls(conv_id=data.get("conv_id"))
-        g.l1_triggers = {
-            tid: L1Trigger.from_dict(d) for tid, d in data.get("l1_triggers", {}).items()
+        g.entity_bridge_triggers = {
+            tid: EntityBridgeTrigger.from_dict(d) for tid, d in data.get("entity_bridge_triggers", {}).items()
         }
         return g
     def save(self, path: Path | str) -> None:
@@ -250,7 +250,7 @@ class TriggerGraph:
         mats: List["np.ndarray"] = []
         levels: List[int] = []
         for tid, emb in embeddings.items():
-            if tid not in self.l1_triggers:
+            if tid not in self.entity_bridge_triggers:
                 continue
             levels.append(1)
             ids.append(tid)
@@ -308,7 +308,7 @@ class TriggerGraph:
         emb_bridge: Dict[str, "np.ndarray"],
         emb_joint: Dict[str, "np.ndarray"],
     ) -> None:
-        """Save concept/bridge/joint per-L1 embedding views into a single npz.
+        """Save concept/bridge/joint per-trigger embedding views into a single npz.
 
         Rows are aligned across the three views; triggers lacking a bridge or
         joint vector are stored as NaN, which ``nanmax`` collapses back to
@@ -333,7 +333,7 @@ class TriggerGraph:
         nan_row = np.full((dim,), np.nan, dtype=np.float32)
 
         for tid, emb_c in emb_concept.items():
-            if tid not in self.l1_triggers:
+            if tid not in self.entity_bridge_triggers:
                 continue
             ids.append(tid)
             levels.append(1)
@@ -392,7 +392,7 @@ class TriggerGraph:
 
 
 def normalize_concept(text: str) -> str:
-    """Aggressive normalization for L1 concept dedup.
+    """Aggressive normalization for Entity/Bridge trigger concept dedup.
 
     Lowercase, strip, collapse whitespace, remove common punctuation at edges.
     """
@@ -405,7 +405,7 @@ def normalize_concept(text: str) -> str:
 
 
 def _quality_dist(values: List[float]) -> Dict[str, int]:
-    """Bucket L1 quality into readable histogram."""
+    """Bucket entity/bridge trigger quality into readable histogram."""
     buckets = {"<0.5": 0, "0.5-0.7": 0, "0.7-0.85": 0, ">=0.85": 0}
     for v in values:
         if v < 0.5:

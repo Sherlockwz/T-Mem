@@ -28,7 +28,7 @@ from T_mem.config import MODELS  # noqa: E402
 
 _logger = logging.getLogger("T_mem.evaluation.stage8_qa_locomo_plus")
 
-# CRITICAL: matches trigger_l2l3/qa_judge/prompts.py::QA_COGNITIVE_WITH_CUE_PROMPT
+# CRITICAL: matches scene_horizon_triggers/qa_judge/prompts.py::QA_COGNITIVE_WITH_CUE_PROMPT
 # verbatim (same whitespace, same placeholders). Do NOT reformat.
 QA_COGNITIVE_WITH_CUE_PROMPT = """You are continuing a conversation between {speaker_a} and {speaker_b}.
 

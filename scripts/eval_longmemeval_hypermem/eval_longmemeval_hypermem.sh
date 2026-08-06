@@ -109,18 +109,18 @@ export T_MEM_DATA_FILE="$STITCHED_FILE"
 if [[ -d "$PERSONA_STORE_ROOT" ]]; then
     export T_MEM_PERSONA_STORE_ROOT="$PERSONA_STORE_ROOT"
 fi
-# Trigger configuration — default OFF (No L1 Trigger + No L2L3, best overall hypermem result)
+# Trigger configuration — default OFF (No Entity/Bridge Trigger + No Scene/Horizon, best overall hypermem result)
 if [[ "$ENABLE_TRIGGERS" -eq 1 ]]; then
     # Original behaviour: keep build-stage trigger configuration
-    if [[ -f "$EXP_DIR/l2l3_topk_per_qa.json" ]]; then
-        export L2L3_ASSOC_TOPK_JSON="$EXP_DIR/l2l3_topk_per_qa.json"
+    if [[ -f "$EXP_DIR/scene_horizon_topk_per_qa.json" ]]; then
+        export SCENE_HORIZON_ASSOC_TOPK_JSON="$EXP_DIR/scene_horizon_topk_per_qa.json"
     fi
 else
-    # Default: disable L1 entity+bridge trigger and L2L3 associative recall.
+    # Default: disable entity/bridge trigger and Scene/Horizon associative recall.
     # This aligns with the "No L1 Trigger + No L2L3" ablation config
     # which yielded the best overall score on LongMemEval (78.2±0.2).
-    export T_MEM_L1_TRIGGER_ENABLED=0
-    unset L2L3_ASSOC_TOPK_JSON
+    export T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED=0
+    unset SCENE_HORIZON_ASSOC_TOPK_JSON
 fi
 
 QA_SCRIPT="$SCRIPT_DIR/qa_hypermem.py"
@@ -159,7 +159,7 @@ echo "JUDGE_MODEL         = $JUDGE_MODEL"         | tee -a "$LOG_FILE"
 echo "JUDGE_NUM_RUNS      = $NUM_RUNS"            | tee -a "$LOG_FILE"
 echo "JUDGE_CONCURRENCY   = $JUDGE_CONCURRENCY"   | tee -a "$LOG_FILE"
 echo "Judge protocol      = single CORRECT/WRONG + JSON label + 3-run mean±std" | tee -a "$LOG_FILE"
-echo "Trigger config      = $([ "$ENABLE_TRIGGERS" -eq 1 ] && echo 'ON (build-stage)' || echo 'OFF (No L1 Trigger + No L2L3)')" | tee -a "$LOG_FILE"
+echo "Trigger config      = $([ "$ENABLE_TRIGGERS" -eq 1 ] && echo 'ON (build-stage)' || echo 'OFF (No Entity/Bridge Trigger + No Scene/Horizon)')" | tee -a "$LOG_FILE"
 
 # ---- Step -1: Re-run stage6 without triggers (default behaviour) ----
 # When --enable-triggers is passed, skip this — use build-stage search_results.json as-is.
@@ -168,7 +168,7 @@ if [[ "$ENABLE_TRIGGERS" -eq 0 ]]; then
         cp "$EXP_DIR/search_results.json" "$EXP_DIR/search_results.json.bak_eval"
         trap "cp '$EXP_DIR/search_results.json.bak_eval' '$EXP_DIR/search_results.json' 2>/dev/null || true" EXIT
     fi
-    run_step "Step -1 Re-run stage6 (T_MEM_L1_TRIGGER_ENABLED=0 + L2L3 off)" \
+    run_step "Step -1 Re-run stage6 (T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED=0 + Scene/Horizon off)" \
         python3 -u -m T_mem.main.stage6_retrieval
 fi
 

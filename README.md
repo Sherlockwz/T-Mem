@@ -193,8 +193,8 @@ bash scripts/eval_longmemeval.sh --resume results/<experiment_dir>
 | 1     | Scene Extraction              | stitched dialogues       | `scene_list_conv_*.json`                        |
 | 2     | Memory Graph Extraction       | scenes                   | `memory_graph_conv_*.json`, `items_conv_*.json` |
 | 3     | Index Building                | memory graphs            | BM25 `.pkl` + vector `.pkl` per conv            |
-| 4     | L2/L3 Trigger Extraction      | scenes                   | `triggers_conv_*.json`                          |
-| 5     | Per-QA Top-K (RRF Fusion)     | scenes + triggers        | `l2l3_topk_per_qa.json`                         |
+| 4     | Scene/Horizon Trigger Extraction      | scenes                   | `triggers_conv_*.json`                          |
+| 5     | Per-QA Top-K (RRF Fusion)     | scenes + triggers        | `scene_horizon_topk_per_qa.json`                         |
 | 6     | Hierarchical Retrieval        | all indexes + top-K      | `search_results.json`                           |
 | 7     | Persona Extraction (optional) | scenes                   | `personas/`                                     |
 | 8     | QA Generation                 | search_results + personas | `responses.json` / `hypothesis.jsonl`          |
@@ -223,14 +223,14 @@ T-Mem/
 │   ├── bootstrap.py      # LLM / Embedding / Reranker provider injection
 │   ├── types.py          # Scene, MemoryItem, Topic dataclasses
 │   ├── structure.py      # MemoryGraph (3-layer graph Pydantic models)
-│   ├── extractors/       # scene / topic / memory-item / trigger extractors
-│   ├── index/            # BM25 / vector / trigger index builders
+│   ├── extractors/       # scene / topic / memory-item / Entity&Bridge & Scene&Horizon trigger extractors
+│   ├── index/            # BM25 / vector / Entity&Bridge & Scene&Horizon trigger index builders
 │   ├── io/               # predictions adapter + search-result truncator
 │   ├── llm/              # Venus / BGE-M3 / Qwen / tRAG providers
 │   ├── main/             # Pipeline stages (stage0–stage8)
 │   ├── persona/          # Persona profile extraction & QA support
 │   ├── prompts/          # LLM prompt templates
-│   ├── retrievers/       # trigger recaller
+│   ├── retrievers/       # Entity/Bridge trigger recaller
 │   └── utils/            # datetime helpers + logger
 ├── benchmark_eval/
 │   ├── locomo/           # LoCoMo judge + format converter

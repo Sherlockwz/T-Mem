@@ -236,7 +236,7 @@ function render(){
       <span class="chip">participants <b>${c.participants.map(p=>p.replace(/_0$/,'')).join(' · ')}</b></span>
       <span class="chip"><b>${c.n_scenes_total}</b> scenes</span>
       <span class="chip"><b>${c.n_items_total}</b> items extracted</span>
-      <span class="chip"><b>${c.n_l1_triggers}</b> item-level triggers</span>
+<span class="chip"><b>${c.n_entity_bridge_triggers}</b> item-level triggers</span>
     </div>
     <p class="hint">Pick a scene, then step through the pipeline. Showing ${DATA.scenes.length} representative scenes from this conversation.</p>
     <div class="picker">${DATA.scenes.map((sc,i)=>`

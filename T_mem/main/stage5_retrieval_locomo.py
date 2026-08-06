@@ -1,7 +1,7 @@
 """Stage 5: per-QA top-K scene builder via three-channel RRF fusion.
 
 For each (conv_id, question) pair, fuses three cosine-similarity rankings
-(dialogue / L2 attrs / L3 channels) with RRF and writes the top-K scene_ids per QA.
+(dialogue / scene attributes / horizon channels) with RRF and writes the top-K scene_ids per QA.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from T_mem.config import ExperimentConfig  # noqa: E402
-from T_mem.prompts.trigger_prompts import L2_KEYS, L3_KEYS, N_TURNS_SKIP  # noqa: E402
+from T_mem.prompts.trigger_prompts import SCENE_TRIGGER_KEYS, HORIZON_TRIGGER_KEYS, N_TURNS_SKIP  # noqa: E402
 
 DEFAULT_TOPK = 10
 DEFAULT_RRF_K = 30
@@ -43,23 +43,23 @@ def _scene_dialogue(sc: dict) -> str:
             lines.append(f"{spk}: {cnt}")
     return "\n".join(lines)
 
-def _collect_l2_l3(trig_rec: dict) -> tuple[list[str], list[str]]:
-    l2_list: list[str] = []
-    l3_list: list[str] = []
+def _collect_scene_horizon(trig_rec: dict) -> tuple[list[str], list[str]]:
+    scene_list: list[str] = []
+    horizon_list: list[str] = []
     if not trig_rec or trig_rec.get("status") != "ok":
-        return l2_list, l3_list
-    l2 = trig_rec.get("L2_attributes") or {}
-    for k in L2_KEYS:
-        v = l2.get(k)
+        return scene_list, horizon_list
+    sa = trig_rec.get("scene_attributes") or {}
+    for k in SCENE_TRIGGER_KEYS:
+        v = sa.get(k)
         if isinstance(v, str) and v.strip():
-            l2_list.append(v.strip())
-    l3 = trig_rec.get("L3_channels") or {}
-    for k in L3_KEYS:
-        sub = l3.get(k) or {}
+            scene_list.append(v.strip())
+    hc = trig_rec.get("horizon_channels") or {}
+    for k in HORIZON_TRIGGER_KEYS:
+        sub = hc.get(k) or {}
         sent = sub.get("sent")
         if isinstance(sent, str) and sent.strip():
-            l3_list.append(sent.strip())
-    return l2_list, l3_list
+            horizon_list.append(sent.strip())
+    return scene_list, horizon_list
 
 def _cos(q: np.ndarray, mat: np.ndarray) -> np.ndarray:
     if mat.shape[0] == 0:
@@ -111,28 +111,28 @@ def prepare_conv(
         n_turns = len(sc.get("original_data", []) or [])
         trig_rec = trig_map.get(sid, {}) or {}
         status = trig_rec.get("status")
-        # Hard filter: n_turns>N_TURNS_SKIP or non-ok trigger → drop L2/L3.
+        # Hard filter: n_turns>N_TURNS_SKIP or non-ok trigger → drop Scene/Horizon.
         if n_turns > N_TURNS_SKIP or status != "ok":
-            l2_list, l3_list = [], []
+            scene_list, horizon_list = [], []
         else:
-            l2_list, l3_list = _collect_l2_l3(trig_rec)
+            scene_list, horizon_list = _collect_scene_horizon(trig_rec)
 
         entry = {
             "scene_id": sid,
             "n_turns": n_turns,
             "trigger_status": status,
             "dlg_idx": None,
-            "l2_idxs": [],
-            "l3_idxs": [],
+            "scene_attr_idxs": [],
+            "horizon_channel_idxs": [],
         }
         if dlg.strip():
             entry["dlg_idx"] = len(all_texts)
             all_texts.append(dlg)
-        for v in l2_list:
-            entry["l2_idxs"].append(len(all_texts))
+        for v in scene_list:
+            entry["scene_attr_idxs"].append(len(all_texts))
             all_texts.append(v)
-        for v in l3_list:
-            entry["l3_idxs"].append(len(all_texts))
+        for v in horizon_list:
+            entry["horizon_channel_idxs"].append(len(all_texts))
             all_texts.append(v)
         entries.append(entry)
 
@@ -151,20 +151,20 @@ def prepare_conv(
         sid = e["scene_id"]
         order.append(sid)
         dlg_vec = all_vecs[e["dlg_idx"]] if e["dlg_idx"] is not None else None
-        l2_mat = (
-            np.stack([all_vecs[i] for i in e["l2_idxs"]], axis=0)
-            if e["l2_idxs"] else np.zeros((0, 0), dtype=np.float32)
+        scene_attr_mat = (
+            np.stack([all_vecs[i] for i in e["scene_attr_idxs"]], axis=0)
+            if e["scene_attr_idxs"] else np.zeros((0, 0), dtype=np.float32)
         )
-        l3_mat = (
-            np.stack([all_vecs[i] for i in e["l3_idxs"]], axis=0)
-            if e["l3_idxs"] else np.zeros((0, 0), dtype=np.float32)
+        horizon_channel_mat = (
+            np.stack([all_vecs[i] for i in e["horizon_channel_idxs"]], axis=0)
+            if e["horizon_channel_idxs"] else np.zeros((0, 0), dtype=np.float32)
         )
         sc_vecs[sid] = {
             "n_turns": e["n_turns"],
             "trigger_status": e["trigger_status"],
             "dlg_vec": dlg_vec,
-            "l2_mat": l2_mat,
-            "l3_mat": l3_mat,
+            "scene_attr_mat": scene_attr_mat,
+            "horizon_channel_mat": horizon_channel_mat,
         }
     return {"scenes_order": order, "scenes": sc_vecs}
 
@@ -179,13 +179,13 @@ def score_one_query(
         b = 0.0
         if sc["dlg_vec"] is not None:
             b = float(_cos(q_vec, sc["dlg_vec"][np.newaxis, :])[0])
-        l2 = 0.0
-        if sc["l2_mat"].shape[0] > 0:
-            l2 = float(_cos(q_vec, sc["l2_mat"]).max())
-        l3 = 0.0
-        if sc["l3_mat"].shape[0] > 0:
-            l3 = float(_cos(q_vec, sc["l3_mat"]).max())
-        out[sid] = {"b": b, "l2": l2, "l3": l3}
+        scene = 0.0
+        if sc["scene_attr_mat"].shape[0] > 0:
+            scene = float(_cos(q_vec, sc["scene_attr_mat"]).max())
+        horizon = 0.0
+        if sc["horizon_channel_mat"].shape[0] > 0:
+            horizon = float(_cos(q_vec, sc["horizon_channel_mat"]).max())
+        out[sid] = {"b": b, "scene": scene, "horizon": horizon}
     return out
 
 def rrf_fuse_topk(
@@ -193,7 +193,7 @@ def rrf_fuse_topk(
     topk: int,
     k: int = DEFAULT_RRF_K,
 ) -> list[tuple[str, float]]:
-    """RRF fusion of three ranklists (b, l2, l3).
+    """RRF fusion of three ranklists (b, scene, horizon).
 
     score(sc) = Σ_c 1/(k + rank_c(sc)), ties broken by scene_id asc.
     """
@@ -206,12 +206,12 @@ def rrf_fuse_topk(
         return {s: i + 1 for i, s in enumerate(ordered)}
 
     rk_b = _rank("b")
-    rk_l2 = _rank("l2")
-    rk_l3 = _rank("l3")
+    rk_scene = _rank("scene")
+    rk_horizon = _rank("horizon")
 
     fused: list[tuple[str, float]] = []
     for sid in sids:
-        s = 1.0 / (k + rk_b[sid]) + 1.0 / (k + rk_l2[sid]) + 1.0 / (k + rk_l3[sid])
+        s = 1.0 / (k + rk_b[sid]) + 1.0 / (k + rk_scene[sid]) + 1.0 / (k + rk_horizon[sid])
         fused.append((sid, s))
     fused.sort(key=lambda x: (-x[1], x[0]))
     return fused[:topk]
@@ -320,22 +320,22 @@ def main() -> None:
     """Default entry: read paths from ExperimentConfig.
 
     Inputs  : <experiment_dir>/scenes/scene_list_conv_*.json
-              <experiment_dir>/l2l3_triggers/triggers_conv_*.json
+              <experiment_dir>/scene_horizon_triggers/triggers_conv_*.json
               ExperimentConfig.dataset_path (T_MEM_DATA_FILE)
-    Output  : <experiment_dir>/l2l3_topk_per_qa.json
+    Output  : <experiment_dir>/scene_horizon_topk_per_qa.json
 
     Env overrides (optional):
-      T_MEM_L2L3_TOPK    default 10
-      T_MEM_L2L3_RRF_K   default 30
+      T_MEM_SCENE_HORIZON_TOPK    default 10
+      T_MEM_SCENE_HORIZON_RRF_K   default 30
     """
     config = ExperimentConfig()
     scenes_dir = config.scenes_dir()
-    triggers_dir = config.experiment_dir() / "l2l3_triggers"
+    triggers_dir = config.experiment_dir() / "scene_horizon_triggers"
     locomo_file = Path(config.dataset_path)
-    out_file = config.experiment_dir() / "l2l3_topk_per_qa.json"
+    out_file = config.experiment_dir() / "scene_horizon_topk_per_qa.json"
 
-    topk = int(os.environ.get("T_MEM_L2L3_TOPK", str(DEFAULT_TOPK)))
-    rrf_k = int(os.environ.get("T_MEM_L2L3_RRF_K", str(DEFAULT_RRF_K)))
+    topk = int(os.environ.get("T_MEM_SCENE_HORIZON_TOPK", str(DEFAULT_TOPK)))
+    rrf_k = int(os.environ.get("T_MEM_SCENE_HORIZON_RRF_K", str(DEFAULT_RRF_K)))
 
     log.info("[stage5/topk] experiment_dir=%s", config.experiment_dir())
     log.info("[stage5/topk] scenes_dir=%s", scenes_dir)

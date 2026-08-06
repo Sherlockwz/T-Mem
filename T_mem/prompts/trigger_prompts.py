@@ -1,20 +1,17 @@
-"""Trigger-generation prompts (item-level L1 Entity/Bridge, scene-level L2 Scene + L3 Horizon).
-Helpers build_prompt / L2_KEYS / L3_KEYS are consumed by T_mem.main.stage4_associative_extract."""
+"""Trigger-generation prompts (Entity/Bridge (item-level) and Scene/Horizon (scene-level)).
+Helpers build_prompt / SCENE_TRIGGER_KEYS / HORIZON_TRIGGER_KEYS are consumed by T_mem.main.stage4_associative_extract."""
 
-# CRITICAL: code keeps legacy L1/L2/L3 names for backward compat with existing
-# artefacts (pickles, JSON dumps, BGE index shards). Paper-to-code mapping:
-#   Entity Trigger  -> L1 (concept field of L1Trigger)
-#   Bridge Trigger  -> L1 (bridge field of L1Trigger)
-#   Scene Trigger   -> L2 (L2_attributes: scene / object / event / emotion)
-#   Horizon Trigger -> L3 (L3_channels: PERSONAL_ARC / AVOIDANCE_HABIT /
+# Paper-to-code mapping (Entity/Bridge/Scene/Horizon → code structure):
+#   Entity Trigger  -> EntityBridgeTrigger (concept field)
+#   Bridge Trigger  -> EntityBridgeTrigger (bridge field)
+#   Scene Trigger   -> scene_attributes (scene / object / event / emotion)
+#   Horizon Trigger -> horizon_channels (PERSONAL_ARC / AVOIDANCE_HABIT /
 #                          GOAL_ARC / BELIEF_IN_ACTION / LEGACY_ANCHOR)
-# Do NOT rename the L1/L2/L3 tokens without a coordinated sweep across
-# prompts, extractors, index, embedder, and the stage-4 parser.
 
-L1_TRIGGER_PROMPT = """
+ENTITY_BRIDGE_TRIGGER_PROMPT = """
 You are an expert in generating retrieval triggers that sit one semantic step above a memory item.
 
-Your task: Generate {trigger_count} L1 TRIGGERS for the memory item below. Each trigger is a short noun phrase (2-6 words) that, if mentioned later, should reliably pull THIS item to mind.
+Your task: Generate {trigger_count} item-level triggers (Entity + Bridge routes) for the memory item below. Each trigger is a short noun phrase (2-6 words) that, if mentioned later, should reliably pull THIS item to mind.
 
 ## MEMORY ITEM
 
@@ -117,8 +114,8 @@ Return strict JSON only. No markdown, no commentary.
 """
 
 
-_L3_DEF_BLOCK = """\
-## L3 Channels — 5 semantic-bridge dimensions
+_HORIZON_DEF_BLOCK = """\
+## Horizon Trigger Channels — 5 semantic-bridge dimensions
 
 Each channel is a **forward-looking bridge** from the cue toward a likely future
 query. The trigger sentence should NOT summarize the cue; it should capture the
@@ -149,8 +146,8 @@ implicit extension the cue foreshadows.
 - Otherwise confidence must be in [0.3, 1.0] and sent must be one complete English sentence.
 """
 
-_L2_DEF_BLOCK = """\
-## L2 Attributes - 4 attribute fields
+_SCENE_DEF_BLOCK = """\
+## Scene Trigger Attributes - 4 attribute fields
 
 One-sentence description of the cue along 4 orthogonal axes. These are
 **about the cue itself**, not about future queries.
@@ -158,8 +155,8 @@ One-sentence description of the cue along 4 orthogonal axes. These are
 | Field   | Guiding question                                                    | Bad example (DO NOT do this) |
 |---------|---------------------------------------------------------------------|-------------------------------|
 | scene   | "What situation/setting does this happen in?"                       | "a scene about devices" (collapses into object) |
-| object  | "What essential entity / item / person does it involve?"            | "phone battery" (that's an L1 keyword) |
-| event   | "What abstracted action/change happened (abstracted, not literal)?" | "replaced battery" (literal, = L1) |
+| object  | "What essential entity / item / person does it involve?"            | "phone battery" (that's an entity-level keyword) |
+| event   | "What abstracted action/change happened (abstracted, not literal)?" | "replaced battery" (literal, = entity-level) |
 | emotion | "What emotional arc / psychological tone shines through?"           | "happy" (too generic) |
 
 All 4 fields are REQUIRED. Each must be one concise sentence. Do NOT leave null.
@@ -172,13 +169,13 @@ _FEW_SHOT_1_CUE = (
 
 _FEW_SHOT_1_ANSWER_FULL = """\
 {
-  "L2_attributes": {
+  "scene_attributes": {
     "scene":   "An early-career identity crisis framed by a rejection and a forced detour into manual work.",
     "object":  "An aspiring architect re-encountering the built environment from the ground up, through a construction-site gap year.",
     "event":   "A painful rejection redirected into hands-on immersion, reshaping how the field is understood.",
     "emotion": "Disappointment transformed into grounded, earned respect for the craft."
   },
-  "L3_channels": {
+  "horizon_channels": {
     "PERSONAL_ARC":     { "sent": "Shifted from a self defined by academic ambition to one whose understanding of the field is grounded in physical, ground-level labor.", "confidence": 0.85 },
     "AVOIDANCE_HABIT":  { "sent": null, "confidence": 0.0 },
     "GOAL_ARC":         { "sent": null, "confidence": 0.0 },
@@ -187,9 +184,9 @@ _FEW_SHOT_1_ANSWER_FULL = """\
   }
 }"""
 
-_FEW_SHOT_1_ANSWER_L3_ONLY = """\
+_FEW_SHOT_1_ANSWER_HORIZON_ONLY = """\
 {
-  "L3_channels": {
+  "horizon_channels": {
     "PERSONAL_ARC":     { "sent": "Shifted from a self defined by academic ambition to one whose understanding of the field is grounded in physical, ground-level labor.", "confidence": 0.85 },
     "AVOIDANCE_HABIT":  { "sent": null, "confidence": 0.0 },
     "GOAL_ARC":         { "sent": null, "confidence": 0.0 },
@@ -205,13 +202,13 @@ _FEW_SHOT_2_CUE = (
 
 _FEW_SHOT_2_ANSWER_FULL = """\
 {
-  "L2_attributes": {
+  "scene_attributes": {
     "scene":   "Long-term planning of a singular high-investment leisure pursuit.",
     "object":  "Accumulated vacation days being channeled toward one ambitious cultural-immersion trip.",
     "event":   "Concentration of personal time and energy into a single, hard-to-reverse commitment.",
     "emotion": "Eager anticipation tied to a somewhat romanticized ideal."
   },
-  "L3_channels": {
+  "horizon_channels": {
     "PERSONAL_ARC":     { "sent": null, "confidence": 0.0 },
     "AVOIDANCE_HABIT":  { "sent": null, "confidence": 0.0 },
     "GOAL_ARC":         { "sent": "A large, singular travel commitment that will invite its own cost and replacement reflex - downscaling to smaller local or everyday fulfillment if circumstances change.", "confidence": 0.80 },
@@ -220,9 +217,9 @@ _FEW_SHOT_2_ANSWER_FULL = """\
   }
 }"""
 
-_FEW_SHOT_2_ANSWER_L3_ONLY = """\
+_FEW_SHOT_2_ANSWER_HORIZON_ONLY = """\
 {
-  "L3_channels": {
+  "horizon_channels": {
     "PERSONAL_ARC":     { "sent": null, "confidence": 0.0 },
     "AVOIDANCE_HABIT":  { "sent": null, "confidence": 0.0 },
     "GOAL_ARC":         { "sent": "A large, singular travel commitment that will invite its own cost and replacement reflex - downscaling to smaller local or everyday fulfillment if circumstances change.", "confidence": 0.80 },
@@ -239,20 +236,20 @@ _PROMPT_A_PREFIX = (
     "You will be given ONE cue dialogue (2 short turns). Produce two layers of\n"
     "triggers from it, at different abstraction levels:\n"
     "\n"
-    "- **L2 Attributes**: 4 one-sentence attribute descriptors of the cue itself.\n"
-    "- **L3 Channels**: 5 forward-looking semantic-bridge sentences to likely future queries.\n"
+    "- **Scene Trigger Attributes**: 4 one-sentence attribute descriptors of the cue itself.\n"
+    "- **Horizon Trigger Channels**: 5 forward-looking semantic-bridge sentences to likely future queries.\n"
     "\n---\n\n"
-    + _L2_DEF_BLOCK
+    + _SCENE_DEF_BLOCK
     + "\n---\n\n"
-    + _L3_DEF_BLOCK
+    + _HORIZON_DEF_BLOCK
     + "\n---\n\n"
     "## Core rules\n"
     "\n"
     "1. **NEVER peek at a query.** You are given only the cue. Trigger sentences must\n"
     "   be derivable from the cue alone. Do NOT invent details that aren't implied.\n"
-    "2. **L2 is about the cue itself; L3 is about what the cue foreshadows.** Do not\n"
+    "2. **Scene Trigger is about the cue itself; Horizon Trigger is about what the cue foreshadows.** Do not\n"
     "   conflate the two layers.\n"
-    "3. L2 fields are **all required**. L3 channels are **empty when there is no signal**\n"
+    "3. Scene attributes are **all required**. Horizon channels are **empty when there is no signal**\n"
     "   (sent=null, confidence=0). Never force-fill a channel.\n"
     "4. Every sentence is in **English**. One cue turn != one sentence - synthesize.\n"
     "5. Keep each sentence under 35 words.\n"
@@ -271,8 +268,8 @@ _PROMPT_A_PREFIX = (
 _PROMPT_A_SUFFIX = (
     "\n```\n\n"
     "Return a single JSON object with exactly these top-level keys:\n"
-    "- \"L2_attributes\": object with keys scene / object / event / emotion, each a non-null string.\n"
-    "- \"L3_channels\": object with keys PERSONAL_ARC / AVOIDANCE_HABIT / GOAL_ARC / BELIEF_IN_ACTION / LEGACY_ANCHOR, each an object with fields sent (string or null) and confidence (float).\n"
+    "- \"scene_attributes\": object with keys scene / object / event / emotion, each a non-null string.\n"
+    "- \"horizon_channels\": object with keys PERSONAL_ARC / AVOIDANCE_HABIT / GOAL_ARC / BELIEF_IN_ACTION / LEGACY_ANCHOR, each an object with fields sent (string or null) and confidence (float).\n"
     "\n"
     "Return JSON only. No markdown fences. No commentary.\n"
 )
@@ -282,27 +279,27 @@ _PROMPT_B_PREFIX = (
     "descriptors that help a future associative query find this cue again, even when\n"
     "the two share almost no literal vocabulary.\n"
     "\n"
-    "You will be given ONE cue dialogue (2 short turns). Produce **only** the L3\n"
+    "You will be given ONE cue dialogue (2 short turns). Produce **only** the Horizon Trigger\n"
     "channel layer: 5 forward-looking semantic-bridge sentences from the cue toward\n"
     "a likely future associative query.\n"
     "\n---\n\n"
-    + _L3_DEF_BLOCK
+    + _HORIZON_DEF_BLOCK
     + "\n---\n\n"
     "## Core rules\n"
     "\n"
     "1. **NEVER peek at a query.** You are given only the cue. Trigger sentences must\n"
     "   be derivable from the cue alone. Do NOT invent details that aren't implied.\n"
-    "2. **L3 is about what the cue foreshadows**, not a summary of the cue.\n"
+    "2. **Horizon Trigger is about what the cue foreshadows**, not a summary of the cue.\n"
     "3. Channels are **empty when there is no signal** (sent=null, confidence=0).\n"
     "   Never force-fill a channel.\n"
     "4. Every sentence is in **English**. Keep each sentence under 35 words.\n"
     "\n---\n\n"
     "## Few-shot example 1\n\n"
     "**CUE**\n```\n" + _FEW_SHOT_1_CUE + "\n```\n\n"
-    "**Correct output**\n```json\n" + _FEW_SHOT_1_ANSWER_L3_ONLY + "\n```\n\n"
+    "**Correct output**\n```json\n" + _FEW_SHOT_1_ANSWER_HORIZON_ONLY + "\n```\n\n"
     "## Few-shot example 2\n\n"
     "**CUE**\n```\n" + _FEW_SHOT_2_CUE + "\n```\n\n"
-    "**Correct output**\n```json\n" + _FEW_SHOT_2_ANSWER_L3_ONLY + "\n```\n\n"
+    "**Correct output**\n```json\n" + _FEW_SHOT_2_ANSWER_HORIZON_ONLY + "\n```\n\n"
     "---\n\n"
     "## Now extract from the following cue\n\n"
     "**CUE**\n```\n"
@@ -311,14 +308,14 @@ _PROMPT_B_PREFIX = (
 _PROMPT_B_SUFFIX = (
     "\n```\n\n"
     "Return a single JSON object with exactly this top-level key:\n"
-    "- \"L3_channels\": object with keys PERSONAL_ARC / AVOIDANCE_HABIT / GOAL_ARC / BELIEF_IN_ACTION / LEGACY_ANCHOR, each an object with fields sent (string or null) and confidence (float).\n"
+    "- \"horizon_channels\": object with keys PERSONAL_ARC / AVOIDANCE_HABIT / GOAL_ARC / BELIEF_IN_ACTION / LEGACY_ANCHOR, each an object with fields sent (string or null) and confidence (float).\n"
     "\n"
     "Return JSON only. No markdown fences. No commentary.\n"
 )
 
 
 def build_prompt(group: str, cue_dialogue: str) -> str:
-    """group in {'A', 'B'}. A = L2+L3, B = L3-only."""
+    """group in {'A', 'B'}. A = Scene+Horizon, B = Horizon-only."""
     if group == "A":
         return _PROMPT_A_PREFIX + cue_dialogue + _PROMPT_A_SUFFIX
     if group == "B":
@@ -326,7 +323,9 @@ def build_prompt(group: str, cue_dialogue: str) -> str:
     raise ValueError(f"unknown group: {group}")
 
 
-L3_KEYS = ["PERSONAL_ARC", "AVOIDANCE_HABIT", "GOAL_ARC", "BELIEF_IN_ACTION", "LEGACY_ANCHOR"]
-L2_KEYS = ["scene", "object", "event", "emotion"]
+HORIZON_TRIGGER_KEYS = ["PERSONAL_ARC", "AVOIDANCE_HABIT", "GOAL_ARC", "BELIEF_IN_ACTION", "LEGACY_ANCHOR"]
+SCENE_TRIGGER_KEYS = ["scene", "object", "event", "emotion"]
 
+# N_TURNS_SKIP: scene-level skip threshold — scenes with more than N_TURNS_SKIP turns
+# are excluded from Scene/Horizon trigger extraction (too long for reliable LLM extraction).
 N_TURNS_SKIP = 10

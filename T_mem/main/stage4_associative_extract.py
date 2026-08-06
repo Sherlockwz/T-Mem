@@ -1,5 +1,5 @@
-"""Stage 4: per-conv L2/L3 associative trigger extraction.
-Reads scenes/scene_list_conv_*.json, writes l2l3_triggers/triggers_conv_{i}.json
+"""Stage 4: per-conv Scene/Horizon trigger extraction.
+Reads scenes/scene_list_conv_*.json, writes scene_horizon_triggers/triggers_conv_{i}.json
 (consumed by stage5_retrieval_locomo)."""
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from T_mem.llm.venus_provider import VenusLLMProvider  # noqa: E402
-from T_mem.prompts.trigger_prompts import build_prompt, L2_KEYS, L3_KEYS, N_TURNS_SKIP  # type: ignore  # noqa: E402
+from T_mem.prompts.trigger_prompts import build_prompt, SCENE_TRIGGER_KEYS, HORIZON_TRIGGER_KEYS, N_TURNS_SKIP  # type: ignore  # noqa: E402
 from T_mem.config import ExperimentConfig, MODELS  # noqa: E402
 
 DEFAULT_CONCURRENCY = 14
@@ -69,22 +69,22 @@ def _parse_json_safe(text: str) -> Optional[dict]:
 def _validate_group_a(obj: dict) -> Optional[str]:
     if not isinstance(obj, dict):
         return "not a dict"
-    if "L2_attributes" not in obj or "L3_channels" not in obj:
-        return "missing L2_attributes or L3_channels"
-    l2 = obj["L2_attributes"]
-    if not isinstance(l2, dict):
-        return "L2_attributes not a dict"
-    for k in L2_KEYS:
-        if k not in l2 or not isinstance(l2[k], str) or not l2[k].strip():
-            return f"L2.{k} missing or empty"
-    l3 = obj["L3_channels"]
-    if not isinstance(l3, dict):
-        return "L3_channels not a dict"
-    for k in L3_KEYS:
-        if k not in l3 or not isinstance(l3[k], dict):
-            return f"L3.{k} missing or not a dict"
-        if "sent" not in l3[k] or "confidence" not in l3[k]:
-            return f"L3.{k} missing sent/confidence"
+    if "scene_attributes" not in obj or "horizon_channels" not in obj:
+        return "missing scene_attributes or horizon_channels"
+    scene_attrs = obj["scene_attributes"]
+    if not isinstance(scene_attrs, dict):
+        return "scene_attributes not a dict"
+    for k in SCENE_TRIGGER_KEYS:
+        if k not in scene_attrs or not isinstance(scene_attrs[k], str) or not scene_attrs[k].strip():
+            return f"scene.{k} missing or empty"
+    horizon_chs = obj["horizon_channels"]
+    if not isinstance(horizon_chs, dict):
+        return "horizon_channels not a dict"
+    for k in HORIZON_TRIGGER_KEYS:
+        if k not in horizon_chs or not isinstance(horizon_chs[k], dict):
+            return f"horizon.{k} missing or not a dict"
+        if "sent" not in horizon_chs[k] or "confidence" not in horizon_chs[k]:
+            return f"horizon.{k} missing sent/confidence"
     return None
 
 def scene_to_dialogue(sc: dict) -> str:
@@ -107,8 +107,8 @@ async def extract_one_scene(
     rec: dict[str, Any] = {
         "status": "pending",
         "latency_s": None,
-        "L2_attributes": None,
-        "L3_channels": None,
+        "scene_attributes": None,
+        "horizon_channels": None,
         "error": None,
     }
     start = time.perf_counter()
@@ -137,14 +137,14 @@ async def extract_one_scene(
     if err is not None:
         rec["status"] = "parse_failed"
         rec["error"] = f"schema invalid: {err}"
-        rec["L2_attributes"] = obj.get("L2_attributes")
-        rec["L3_channels"] = obj.get("L3_channels")
+        rec["scene_attributes"] = obj.get("scene_attributes")
+        rec["horizon_channels"] = obj.get("horizon_channels")
         rec["raw_response"] = (raw if isinstance(raw, str) else str(raw))[:1500]
         return rec
 
     rec["status"] = "ok"
-    rec["L2_attributes"] = obj["L2_attributes"]
-    rec["L3_channels"] = obj["L3_channels"]
+    rec["scene_attributes"] = obj["scene_attributes"]
+    rec["horizon_channels"] = obj["horizon_channels"]
     return rec
 
 
@@ -181,8 +181,8 @@ async def process_conv(
             existing[sid] = {
                 "status": "skipped_by_n_turns",
                 "latency_s": 0.0,
-                "L2_attributes": None,
-                "L3_channels": None,
+                "scene_attributes": None,
+                "horizon_channels": None,
                 "error": None,
                 "n_turns": n_turns,
             }
@@ -193,8 +193,8 @@ async def process_conv(
             existing[sid] = {
                 "status": "skipped_empty",
                 "latency_s": 0.0,
-                "L2_attributes": None,
-                "L3_channels": None,
+                "scene_attributes": None,
+                "horizon_channels": None,
                 "error": "empty dialogue",
                 "n_turns": n_turns,
             }
@@ -346,28 +346,28 @@ async def main() -> None:
     """Default entry: read paths from ExperimentConfig.
 
     Inputs  : <experiment_dir>/scenes/scene_list_conv_*.json
-    Outputs : <experiment_dir>/l2l3_triggers/triggers_conv_*.json
-              <experiment_dir>/l2l3_triggers/extract_stats.json
+    Outputs : <experiment_dir>/scene_horizon_triggers/triggers_conv_*.json
+              <experiment_dir>/scene_horizon_triggers/extract_stats.json
 
     Model id is read from ``T_mem.config.MODELS['memory_build']`` —
     the single source of truth. Other knobs:
-      T_MEM_L2L3_EXTRACT_CONCURRENCY default 14
-      T_MEM_L2L3_EXTRACT_TIMEOUT     default 240
-      T_MEM_L2L3_NO_RESUME=1         force re-run all scenes
+      T_MEM_SCENE_HORIZON_EXTRACT_CONCURRENCY default 14
+      T_MEM_SCENE_HORIZON_EXTRACT_TIMEOUT     default 240
+      T_MEM_SCENE_HORIZON_NO_RESUME=1         force re-run all scenes
     """
     import os
     config = ExperimentConfig()
     scenes_dir = config.scenes_dir()
-    out_dir = config.experiment_dir() / "l2l3_triggers"
+    out_dir = config.experiment_dir() / "scene_horizon_triggers"
 
     model = MODELS["memory_build"]
     concurrency = int(os.environ.get(
-        "T_MEM_L2L3_EXTRACT_CONCURRENCY", str(DEFAULT_CONCURRENCY)
+        "T_MEM_SCENE_HORIZON_EXTRACT_CONCURRENCY", str(DEFAULT_CONCURRENCY)
     ))
     timeout = int(os.environ.get(
-        "T_MEM_L2L3_EXTRACT_TIMEOUT", str(DEFAULT_TIMEOUT)
+        "T_MEM_SCENE_HORIZON_EXTRACT_TIMEOUT", str(DEFAULT_TIMEOUT)
     ))
-    resume = os.environ.get("T_MEM_L2L3_NO_RESUME", "").strip() not in ("1", "true", "yes", "on")
+    resume = os.environ.get("T_MEM_SCENE_HORIZON_NO_RESUME", "").strip() not in ("1", "true", "yes", "on")
 
     log.info("[stage4/extract] experiment_dir=%s", config.experiment_dir())
     log.info("[stage4/extract] scenes_dir=%s", scenes_dir)

@@ -10,8 +10,8 @@
 #     and stronger-backbone (R2-W1) experiments consume.
 #
 # Stage order (item-level Entity+Bridge triggers `trig` run BEFORE stage6,
-# because stage6 retrieval loads them from <exp>/trigger/):
-#   1 scene -> 2 graph -> 3 index -> 4 scene-trigger -> trig(item-trigger)
+# because stage6 retrieval loads them from <exp>/entity_bridge_triggers/):
+#   1 scene -> 2 graph -> 3 index -> 4 scene-trigger -> entity_bridge(item-trigger)
 #     -> 5 per-QA topk -> 6 retrieval -> 7 persona
 #
 # Only additions vs a normal build:
@@ -104,9 +104,9 @@ for s in "${STAGE_ARR[@]}"; do
                 "T_mem.main.build_trigger" --memory-dir "$EXP_DIR" --output-dir "$EXP_DIR/trigger";;
         5)
             run_stage "Stage 5 (per-QA topk)"    "stage5" "T_mem.main.stage5_retrieval_locomo"
-            if [[ -f "$EXP_DIR/l2l3_topk_per_qa.json" ]]; then
-                export L2L3_ASSOC_TOPK_JSON="$EXP_DIR/l2l3_topk_per_qa.json"
-                echo "[build_memory_cost] L2L3_ASSOC_TOPK_JSON=$L2L3_ASSOC_TOPK_JSON" | tee -a "$LOG_FILE"
+if [[ -f "$EXP_DIR/scene_horizon_topk_per_qa.json" ]]; then
+    export SCENE_HORIZON_ASSOC_TOPK_JSON="$EXP_DIR/scene_horizon_topk_per_qa.json"
+    echo "[build_memory_cost] SCENE_HORIZON_ASSOC_TOPK_JSON=$SCENE_HORIZON_ASSOC_TOPK_JSON" | tee -a "$LOG_FILE"
             fi;;
         6) run_stage "Stage 6 (retrieval)"       "stage6" "T_mem.main.stage6_retrieval";;
         7)

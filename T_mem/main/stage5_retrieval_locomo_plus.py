@@ -154,7 +154,7 @@ def build_locomo_plus_topk(
         for rank, (sid, score) in enumerate(topk_pairs, 1):
             sc_stats = prep["scenes"].get(sid, {})
             n_turns = int(sc_stats.get("n_turns", 0))
-            # n_turns > N_TURNS_SKIP → L2/L3 zeroed in prepare_conv.
+            # n_turns > N_TURNS_SKIP → Scene/Horizon zeroed in prepare_conv.
             skipped = n_turns > N_TURNS_SKIP
             payload = sc_payload.get(sid, {})
             rows.append({
@@ -198,10 +198,10 @@ def build_locomo_plus_topk(
 
 def main() -> None:
     """Default entry: paths from ExperimentConfig + benchmark_eval.
-    Env overrides: T_MEM_L2L3_TOPK / T_MEM_L2L3_RRF_K / T_MEM_LOCOMO_PLUS_FILE."""
+    Env overrides: T_MEM_SCENE_HORIZON_TOPK / T_MEM_SCENE_HORIZON_RRF_K / T_MEM_LOCOMO_PLUS_FILE."""
     config = ExperimentConfig()
     scenes_dir = config.scenes_dir()
-    triggers_dir = config.experiment_dir() / "l2l3_triggers"
+    triggers_dir = config.experiment_dir() / "scene_horizon_triggers"
 
     project_root = _PROJECT_ROOT
     locomo_plus_file = Path(
@@ -212,8 +212,8 @@ def main() -> None:
     )
     out_file = config.experiment_dir() / "locomo_plus_topk_per_sample.json"
 
-    topk = int(os.environ.get("T_MEM_L2L3_TOPK", str(DEFAULT_TOPK)))
-    rrf_k = int(os.environ.get("T_MEM_L2L3_RRF_K", str(DEFAULT_RRF_K)))
+    topk = int(os.environ.get("T_MEM_SCENE_HORIZON_TOPK", str(DEFAULT_TOPK)))
+    rrf_k = int(os.environ.get("T_MEM_SCENE_HORIZON_RRF_K", str(DEFAULT_RRF_K)))
 
     log.info("[stage5/locomo_plus] experiment_dir=%s", config.experiment_dir())
     log.info("[stage5/locomo_plus] scenes_dir=%s", scenes_dir)

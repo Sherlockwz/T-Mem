@@ -65,7 +65,7 @@ _SUBSTAGE_ORDER = [
     "stage2.topic.update",
     "stage2.item",
     "stage4.scene_trigger",
-    "l1trigger.item",
+    "entity_bridge_trigger.item",
     "stage7.persona",
 ]
 

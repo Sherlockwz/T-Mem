@@ -35,18 +35,18 @@ console = Console()
 RRF_K = 60
 
 
-# L1 Trigger recall hook (env-gated, default ON).
-# Env: T_MEM_L1_TRIGGER_ENABLED ('0'/'false'/'no'/'off' to DISABLE; else ON).
-# T_MEM_L1_TRIGGER_DIR (default <experiment_dir>/trigger/), TOPK (10), GATE (0.85).
-# When enabled, L1 recall item_ids are union'd into Layer-3 connected_items BEFORE
+# Entity/Bridge Trigger recall hook (env-gated, default ON).
+# Env: T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED ('0'/'false'/'no'/'off' to DISABLE; else ON).
+# T_MEM_ENTITY_BRIDGE_TRIGGER_DIR (default <experiment_dir>/entity_bridge_triggers/), TOPK (10), GATE (0.85).
+# When enabled, entity/bridge recall item_ids are union'd into Layer-3 connected_items BEFORE
 # BM25/Vector/RRF scoring; missing artefacts -> silent baseline fallback with warning.
 _L1_RECALLER_CACHE: Dict[int, Optional[TriggerRecaller]] = {}
 _L1_RECALLER_CACHE_LOCK = threading.Lock()
 
 
-def _is_l1_trigger_enabled() -> bool:
+def _is_entity_bridge_trigger_enabled() -> bool:
     """Default ON; only explicit opt-out disables the feature."""
-    raw = os.environ.get("T_MEM_L1_TRIGGER_ENABLED", "").strip().lower()
+    raw = os.environ.get("T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED", "").strip().lower()
     # explicit off
     if raw in ("0", "false", "no", "off"):
         return False
@@ -54,8 +54,8 @@ def _is_l1_trigger_enabled() -> bool:
     return True
 
 
-def _l1_trigger_topk() -> int:
-    raw = os.environ.get("T_MEM_L1_TRIGGER_TOPK", "").strip()
+def _entity_bridge_trigger_topk() -> int:
+    raw = os.environ.get("T_MEM_ENTITY_BRIDGE_TRIGGER_TOPK", "").strip()
     if not raw:
         return 10
     try:
@@ -64,8 +64,8 @@ def _l1_trigger_topk() -> int:
         return 10
 
 
-def _l1_trigger_gate() -> float:
-    raw = os.environ.get("T_MEM_L1_TRIGGER_GATE", "").strip()
+def _entity_bridge_trigger_gate() -> float:
+    raw = os.environ.get("T_MEM_ENTITY_BRIDGE_TRIGGER_GATE", "").strip()
     if not raw:
         return 0.85
     try:
@@ -75,15 +75,15 @@ def _l1_trigger_gate() -> float:
         return 0.85
 
 
-def _load_l1_trigger_recaller(
+def _load_entity_bridge_trigger_recaller(
     conv_id: int,
     memory_graph_dir: Path,
 ) -> Optional[TriggerRecaller]:
-    """Lazy-load the per-conv L1 TriggerRecaller.
+    """Lazy-load the per-conv Entity/Bridge TriggerRecaller.
 
     Trigger artefacts location priority:
-      1. T_MEM_L1_TRIGGER_DIR env (absolute or relative)
-      2. <memory_graph_dir>.parent / "trigger"  (i.e. the default
+      1. T_MEM_ENTITY_BRIDGE_TRIGGER_DIR env (absolute or relative)
+      2. <memory_graph_dir>.parent / "entity_bridge_triggers"  (i.e. the default
          output path of build_trigger.py, which sits next to the
          memory-graph dir under <experiment_dir>/)
 
@@ -92,7 +92,7 @@ def _load_l1_trigger_recaller(
     via a per-process lock; populated entries are cached so recall does
     not re-read the NPZ each question.
     """
-    if not _is_l1_trigger_enabled():
+    if not _is_entity_bridge_trigger_enabled():
         return None
 
     # Fast path — cached (including cached None for missing artefacts).
@@ -103,16 +103,16 @@ def _load_l1_trigger_recaller(
         if conv_id in _L1_RECALLER_CACHE:
             return _L1_RECALLER_CACHE[conv_id]
 
-        override_dir = os.environ.get("T_MEM_L1_TRIGGER_DIR", "").strip()
+        override_dir = os.environ.get("T_MEM_ENTITY_BRIDGE_TRIGGER_DIR", "").strip()
         if override_dir:
             trigger_dir = Path(override_dir)
         else:
-            trigger_dir = memory_graph_dir.parent / "trigger"
+            trigger_dir = memory_graph_dir.parent / "entity_bridge_triggers"
 
         if not trigger_dir.exists():
             print(
-                f"[L1_TRIGGER] WARNING: trigger_dir not found: {trigger_dir} "
-                f"— disabling L1 recall for conv {conv_id}"
+                f"[ENTITY_BRIDGE_TRIGGER] WARNING: trigger_dir not found: {trigger_dir} "
+                f"— disabling entity/bridge recall for conv {conv_id}"
             )
             _L1_RECALLER_CACHE[conv_id] = None
             return None
@@ -121,40 +121,40 @@ def _load_l1_trigger_recaller(
             recaller = TriggerRecaller.from_dir(trigger_dir, conv_id)
         except Exception as e:  # noqa: BLE001
             print(
-                f"[L1_TRIGGER] WARNING: failed to load conv {conv_id} from "
-                f"{trigger_dir}: {e} — disabling L1 recall for conv {conv_id}"
+                f"[ENTITY_BRIDGE_TRIGGER] WARNING: failed to load conv {conv_id} from "
+                f"{trigger_dir}: {e} — disabling entity/bridge recall for conv {conv_id}"
             )
             _L1_RECALLER_CACHE[conv_id] = None
             return None
 
         if recaller is None:
             print(
-                f"[L1_TRIGGER] conv {conv_id}: no trigger artefacts in "
-                f"{trigger_dir} — L1 recall disabled for this conv"
+                f"[ENTITY_BRIDGE_TRIGGER] conv {conv_id}: no trigger artefacts in "
+                f"{trigger_dir} — entity/bridge recall disabled for this conv"
             )
         else:
             print(
-                f"[L1_TRIGGER] conv {conv_id}: loaded {len(recaller.trigger_ids)} "
-                f"L1 triggers from {trigger_dir} "
-                f"(topk={_l1_trigger_topk()}, gate={_l1_trigger_gate():.2f})"
+                f"[ENTITY_BRIDGE_TRIGGER] conv {conv_id}: loaded {len(recaller.trigger_ids)} "
+                f"entity/bridge triggers from {trigger_dir} "
+                f"(topk={_entity_bridge_trigger_topk()}, gate={_entity_bridge_trigger_gate():.2f})"
             )
         _L1_RECALLER_CACHE[conv_id] = recaller
         return recaller
 
 
-# L2L3 associative-recall hook (env-gated, default OFF).
-# When L2L3_ASSOC_TOPK_JSON points to a per-qa top-K file, Layer 2 unions the
+# Scene/Horizon associative-recall hook (env-gated, default OFF).
+# When SCENE_HORIZON_ASSOC_TOPK_JSON points to a per-qa top-K file, Layer 2 unions the
 # top-K scene_ids into connected_scenes BEFORE BM25/Vector/RRF; rest unchanged.
 _L2L3_ASSOC_CACHE: Optional[Dict[Tuple[int, str], frozenset]] = None
 _L2L3_ASSOC_CACHE_LOADED: bool = False
 _L2L3_ASSOC_LOCK = threading.Lock()
 
 
-def _load_l2l3_assoc_topk() -> Optional[Dict[Tuple[int, str], frozenset]]:
+def _load_scene_horizon_assoc_topk() -> Optional[Dict[Tuple[int, str], frozenset]]:
     """Lazy-load the per-qa top-K association map from env
-    L2L3_ASSOC_TOPK_JSON. Returns None if env is unset or file missing.
+    SCENE_HORIZON_ASSOC_TOPK_JSON. Returns None if env is unset or file missing.
 
-    Schema expected (see build_l2l3_topk_per_qa.py):
+    Schema expected (see scene_horizon_topk_per_qa.json):
       {
         "meta": {...},
         "per_qa": [
@@ -179,14 +179,14 @@ def _load_l2l3_assoc_topk() -> Optional[Dict[Tuple[int, str], frozenset]]:
         # Re-check under lock (another thread may have finished).
         if _L2L3_ASSOC_CACHE_LOADED:
             return _L2L3_ASSOC_CACHE
-        path = os.environ.get("L2L3_ASSOC_TOPK_JSON", "").strip()
+        path = os.environ.get("SCENE_HORIZON_ASSOC_TOPK_JSON", "").strip()
         if not path:
             _L2L3_ASSOC_CACHE = None
             _L2L3_ASSOC_CACHE_LOADED = True
             return None
         p = Path(path)
         if not p.exists():
-            print(f"[L2L3_ASSOC] WARNING: L2L3_ASSOC_TOPK_JSON points to missing file: {p} — disabling")
+            print(f"[SCENE_HORIZON_ASSOC] WARNING: SCENE_HORIZON_ASSOC_TOPK_JSON points to missing file: {p} — disabling")
             _L2L3_ASSOC_CACHE = None
             _L2L3_ASSOC_CACHE_LOADED = True
             return None
@@ -194,7 +194,7 @@ def _load_l2l3_assoc_topk() -> Optional[Dict[Tuple[int, str], frozenset]]:
             with open(p, "r", encoding="utf-8") as f:
                 payload = json.load(f)
         except Exception as e:
-            print(f"[L2L3_ASSOC] WARNING: failed to load {p}: {e} — disabling")
+            print(f"[SCENE_HORIZON_ASSOC] WARNING: failed to load {p}: {e} — disabling")
             _L2L3_ASSOC_CACHE = None
             _L2L3_ASSOC_CACHE_LOADED = True
             return None
@@ -207,7 +207,7 @@ def _load_l2l3_assoc_topk() -> Optional[Dict[Tuple[int, str], frozenset]]:
                 continue
             out[(int(cid), q)] = frozenset(x for x in topk if x)
         meta = payload.get("meta", {}) or {}
-        print(f"[L2L3_ASSOC] loaded {len(out)} per-qa entries from {p} "
+        print(f"[SCENE_HORIZON_ASSOC] loaded {len(out)} per-qa entries from {p} "
               f"(topk={meta.get('topk')}, rrf_k={meta.get('rrf_k')})")
         # Critical: assign CACHE first, then set LOADED=True. Other
         # threads on the fast path must never observe LOADED=True with
@@ -449,16 +449,16 @@ def hierarchical_retrieval(
     embedding_provider: EmbeddingProvider = None,
     reranker_provider: RerankerProvider = None,
     config: ExperimentConfig = None,
-    l2l3_assoc_ids: Optional[Set[str]] = None,
-    l1_trigger_recaller: Optional[TriggerRecaller] = None,
+    scene_horizon_assoc_ids: Optional[Set[str]] = None,
+    entity_bridge_trigger_recaller: Optional[TriggerRecaller] = None,
 ) -> Dict[str, List[Tuple[Dict, float]]]:
     """Top-down three-layer retrieval: Topic → Scene → Item.
 
-    When `l2l3_assoc_ids` is provided it is union'd into Layer-2's scene pool
-    before BM25/Vector/RRF scoring (L2L3 associative-recall hook).
+    When `scene_horizon_assoc_ids` is provided it is union'd into Layer-2's scene pool
+    before BM25/Vector/RRF scoring (Scene/Horizon associative-recall hook).
 
-    When `l1_trigger_recaller` is provided it is invoked at Layer 3 to
-    surface extra item_ids via concept/bridge/joint L1 trigger cosine
+    When `entity_bridge_trigger_recaller` is provided it is invoked at Layer 3 to
+    surface extra item_ids via concept/bridge/joint Entity/Bridge trigger cosine
     match; surviving item_ids are union'd into `connected_items` BEFORE
     BM25/Vector/RRF scoring, leaving downstream rerank + top-K unchanged.
     Requires a non-None `embedding_provider` to embed the query.
@@ -618,17 +618,17 @@ def hierarchical_retrieval(
     print(f"    Found {len(connected_scenes)} scenes via graph-edge connections")
     retrieval_log["layer2_scene"]["connected_count"] = len(connected_scenes)
 
-    # === L2L3 associative-recall union (env-gated, no-op if off) ===
-    # Union the per-question L2L3 top-K scene_ids with the topic->scene
+    # === Scene/Horizon associative-recall union (env-gated, no-op if off) ===
+    # Union the per-question Scene/Horizon top-K scene_ids with the topic->scene
     # expansion pool; the union is then fed to downstream BM25+Vector RRF
     # plus rerank. We keep only ids belonging to the current conv
     # memory graph (normally identical; the scenes_dict filter is purely
     # defensive against dirty ids in external json).
-    if l2l3_assoc_ids:
+    if scene_horizon_assoc_ids:
         _mg_scenes = set((memory_graph.get("scenes", {}) or {}).keys())
-        _valid_assoc = {e for e in l2l3_assoc_ids if e in _mg_scenes}
+        _valid_assoc = {e for e in scene_horizon_assoc_ids if e in _mg_scenes}
         # Snapshot the pre-union topic pool so downstream analysis can
-        # decide, per-id, whether a given L2L3 scene was an overlap with
+        # decide, per-id, whether a given Scene/Horizon scene was an overlap with
         # the topic pool or a purely-new contribution. Without this dump
         # the per-id split is not recoverable from the final retrieval log
         # (pre_rerank is the *union*, which conflates both buckets).
@@ -642,8 +642,8 @@ def hierarchical_retrieval(
             connected_scenes = set(connected_scenes) | _valid_assoc
         _added = len(_added_ids)
         _overlap = len(_overlap_ids)
-        retrieval_log["layer2_scene"]["l2l3_assoc"] = {
-            "n_assoc_input": len(l2l3_assoc_ids),
+        retrieval_log["layer2_scene"]["scene_horizon_assoc"] = {
+            "n_assoc_input": len(scene_horizon_assoc_ids),
             "n_assoc_valid": len(_valid_assoc),
             "n_overlap_with_topic_pool": _overlap,
             "n_added": _added,
@@ -656,7 +656,7 @@ def hierarchical_retrieval(
             "added_ids": sorted(_added_ids),
         }
         print(
-            f"    [L2L3_ASSOC] union: topic_pool={_before} + l2l3={len(l2l3_assoc_ids)}"
+            f"    [SCENE_HORIZON_ASSOC] union: topic_pool={_before} + scene_horizon={len(scene_horizon_assoc_ids)}"
             f" (valid={len(_valid_assoc)}, overlap={_overlap}) → {_before + _added}"
         )
 
@@ -784,20 +784,20 @@ def hierarchical_retrieval(
     print(f"    Found {len(connected_items)} items via graph-edge connections")
     retrieval_log["layer3_item"]["connected_count"] = len(connected_items)
 
-    # -------- L1 trigger associative recall (Layer-3 union, env-gated) --------
-    # If an L1 recaller is attached AND we have an embedding_provider, embed
-    # the query (BGE-M3 space), recall top-K L1 triggers through tri-view
+    # -------- Entity/Bridge trigger associative recall (Layer-3 union, env-gated) --------
+    # If an Entity/Bridge recaller is attached AND we have an embedding_provider, embed
+    # the query (BGE-M3 space), recall top-K Entity/Bridge triggers through tri-view
     # nanmax with a HARD cosine gate (default 0.85), and union the resulting
     # item_ids into connected_items. Downstream BM25/Vector/RRF + rerank +
     # item_top_k still decide the final 25.
-    if l1_trigger_recaller is not None and embedding_provider is not None:
+    if entity_bridge_trigger_recaller is not None and embedding_provider is not None:
         try:
-            _topk = _l1_trigger_topk()
-            _gate = _l1_trigger_gate()
+            _topk = _entity_bridge_trigger_topk()
+            _gate = _entity_bridge_trigger_gate()
             _q_vec = np.asarray(
                 embedding_provider.embed([query])[0], dtype=np.float32
             )
-            _l1_result = l1_trigger_recaller.recall(
+            _l1_result = entity_bridge_trigger_recaller.recall(
                 _q_vec,
                 max_top_triggers=_topk,
                 min_cosine_gate=_gate,
@@ -810,7 +810,7 @@ def hierarchical_retrieval(
             _n_before = len(connected_items)
             if _l1_new_ids:
                 connected_items = connected_items | _l1_new_ids
-            retrieval_log["layer3_item"]["l1_trigger"] = {
+            retrieval_log["layer3_item"]["entity_bridge_trigger"] = {
                 "enabled": True,
                 "triggered": bool(_l1_result.triggered),
                 "reason": _l1_result.reason,
@@ -825,18 +825,18 @@ def hierarchical_retrieval(
                 "connected_after": len(connected_items),
             }
             print(
-                f"    [L1_TRIGGER] fired={_l1_result.triggered} "
+                f"    [ENTITY_BRIDGE_TRIGGER] fired={_l1_result.triggered} "
                 f"cos1={_l1_result.top1_cosine:.3f} "
                 f"triggers={len(_l1_result.triggers)} "
                 f"items={len(_l1_raw_ids)} (new={len(_l1_new_ids)}) "
                 f"connected: {_n_before} -> {len(connected_items)}"
             )
         except Exception as _l1_e:  # noqa: BLE001
-            retrieval_log["layer3_item"]["l1_trigger"] = {
+            retrieval_log["layer3_item"]["entity_bridge_trigger"] = {
                 "enabled": True,
                 "error": f"{type(_l1_e).__name__}: {_l1_e}",
             }
-            print(f"    [L1_TRIGGER] WARNING: recall failed: {_l1_e}")
+            print(f"    [ENTITY_BRIDGE_TRIGGER] WARNING: recall failed: {_l1_e}")
 
     if not connected_items:
         print("    Warning: No connected items found")
@@ -1151,14 +1151,14 @@ def process_single_conversation_retrieval(
             return (conv_id_str, [])
         
         # === Perform hierarchical retrieval for each question ===
-        # L2L3 associative-recall: load the per-qa top-K map once per conv
+        # Scene/Horizon associative-recall: load the per-qa top-K map once per conv
         # (it's a single global cached dict; this lookup is O(1)).
-        assoc_map = _load_l2l3_assoc_topk()
+        assoc_map = _load_scene_horizon_assoc_topk()
 
-        # L1 trigger recaller: per-conv artefact, loaded once (env-gated).
-        # Returns None when T_MEM_L1_TRIGGER_ENABLED is unset or artefacts
+        # Entity/Bridge trigger recaller: per-conv artefact, loaded once (env-gated).
+        # Returns None when T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED is unset or artefacts
         # are missing — hierarchical_retrieval then runs baseline Layer-3.
-        l1_recaller = _load_l1_trigger_recaller(int(conv_id), memory_graph_dir)
+        eb_recaller = _load_entity_bridge_trigger_recaller(int(conv_id), memory_graph_dir)
 
         results_for_conv = []
         for qa_pair in conversation_data["qa"]:
@@ -1170,7 +1170,7 @@ def process_single_conversation_retrieval(
             if qa_pair.get("category") == 5:
                 continue
             
-            # Resolve L2L3 associative ids for this (conv_id, question).
+            # Resolve Scene/Horizon associative ids for this (conv_id, question).
             # Missing entry -> None -> hierarchical_retrieval zero-overhead
             # fallback to baseline behavior.
             assoc_ids: Optional[Set[str]] = None
@@ -1189,8 +1189,8 @@ def process_single_conversation_retrieval(
                 embedding_provider=embedding_provider,
                 reranker_provider=reranker_provider,
                 config=config,
-                l2l3_assoc_ids=assoc_ids,
-                l1_trigger_recaller=l1_recaller,
+                scene_horizon_assoc_ids=assoc_ids,
+                entity_bridge_trigger_recaller=eb_recaller,
             )
             
             # Format results (fixed: scene + item only, topic never emitted)

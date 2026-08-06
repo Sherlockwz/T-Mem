@@ -79,9 +79,9 @@ export T_MEM_DATA_FILE="$LOCOMO_FILE"
 if [[ -d "$PERSONA_STORE_ROOT" ]]; then
     export T_MEM_PERSONA_STORE_ROOT="$PERSONA_STORE_ROOT"
 fi
-# Pick up L2L3 per-QA top-K if stage 5 produced it.
-if [[ -f "$EXP_DIR/l2l3_topk_per_qa.json" ]]; then
-    export L2L3_ASSOC_TOPK_JSON="$EXP_DIR/l2l3_topk_per_qa.json"
+# Pick up Scene/Horizon per-QA top-K if stage 5 produced it.
+if [[ -f "$EXP_DIR/scene_horizon_topk_per_qa.json" ]]; then
+    export SCENE_HORIZON_ASSOC_TOPK_JSON="$EXP_DIR/scene_horizon_topk_per_qa.json"
 fi
 
 cd "$PROJECT_ROOT"

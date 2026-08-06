@@ -1,5 +1,5 @@
-"""L1 Trigger embedder: tri-view BGE embeddings (concept / bridge / joint).
-At recall: cos(q, each view) -> nanmax. Empty-bridge L1s degenerate to concept-only
+"""Entity/Bridge Trigger embedder: tri-view BGE embeddings (concept / bridge / joint).
+At recall: cos(q, each view) -> nanmax. Empty-bridge triggers degenerate to concept-only
 (bridge/joint slots become NaN sentinels, skipped by the NaN-aware max)."""
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from .trigger_index import L1Trigger, TriggerGraph
+from .trigger_index import EntityBridgeTrigger, TriggerGraph
 
 
 def embed_trigger_graph_triview(
@@ -18,25 +18,25 @@ def embed_trigger_graph_triview(
     batch_size: int = 32,
     logger=None,
 ) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, np.ndarray]]:
-    """Returns (emb_concept, emb_bridge, emb_joint); empty-bridge L1s are absent from bridge/joint."""
+    """Returns (emb_concept, emb_bridge, emb_joint); empty-bridge triggers are absent from bridge/joint."""
     log = logger or (lambda m: print(m, flush=True))
 
     concept_items: List[Tuple[str, str]] = []
     bridge_items: List[Tuple[str, str]] = []
     joint_items: List[Tuple[str, str]] = []
 
-    for tid, l1 in graph.l1_triggers.items():
-        concept_items.append((tid, l1.to_text_for_embedding()))
-        bridge_text = (l1.bridge or "").strip()
+    for tid, eb in graph.entity_bridge_triggers.items():
+        concept_items.append((tid, eb.to_text_for_embedding()))
+        bridge_text = (eb.bridge or "").strip()
         if bridge_text:
             bridge_items.append((tid, bridge_text))
             joint_items.append(
-                (tid, f"{l1.concept.strip()} . {bridge_text}")
+                (tid, f"{eb.concept.strip()} . {bridge_text}")
             )
 
     n_c, n_b, n_j = len(concept_items), len(bridge_items), len(joint_items)
     log(
-        f"[Embedder/tri] L1={len(graph.l1_triggers)} "
+        f"[Embedder/tri] entity_bridge={len(graph.entity_bridge_triggers)} "
         f"→ texts to embed: concept={n_c}, bridge={n_b}, joint={n_j}"
     )
 

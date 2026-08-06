@@ -2,10 +2,10 @@
 # ============================================================
 # T_mem · LoCoMo-Plus QA + judge (requires an existing memory library).
 #
-# Shares scenes + l2l3_triggers with LoCoMo, but uses a LoCoMo-Plus specific
+# Shares scenes + scene_horizon_triggers with LoCoMo, but uses a LoCoMo-Plus specific
 # retrieval path:
 #   Step 1  stage5_retrieval_locomo_plus  → locomo_plus_topk_per_sample.json
-#              (3-channel (dialogue / L2 / L3) cosine → RRF fusion, top-K per sample)
+#              (3-channel (dialogue / scene / horizon) cosine → RRF fusion, top-K per sample)
 #   Step 2  stage8_qa_locomo_plus    → predictions.json
 #   Step 3  run_judge.py             → judge.json + metrics.json
 #                                       (reads predictions.json from EXP_DIR
@@ -71,9 +71,9 @@ if [[ ! -d "$EXP_DIR/scenes" ]]; then
     echo "[eval_locomo_plus] FATAL: $EXP_DIR/scenes missing (stage 1 not done?)" >&2
     exit 2
 fi
-if [[ ! -d "$EXP_DIR/l2l3_triggers" ]]; then
-    echo "[eval_locomo_plus] FATAL: $EXP_DIR/l2l3_triggers missing (stage 4 not done?)" >&2
-    echo "  LoCoMo-Plus retrieval requires L2L3 triggers; stage 4 is mandatory." >&2
+if [[ ! -d "$EXP_DIR/scene_horizon_triggers" ]]; then
+    echo "[eval_locomo_plus] FATAL: $EXP_DIR/scene_horizon_triggers missing (stage 4 not done?)" >&2
+    echo "  LoCoMo-Plus retrieval requires Scene/Horizon triggers; stage 4 is mandatory." >&2
     exit 2
 fi
 if [[ ! -f "$LOCOMO_PLUS_FILE" ]]; then

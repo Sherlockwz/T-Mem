@@ -15,14 +15,14 @@
 #                                    haystack history of 38–62 sessions, stitched
 #                                    into a locomo10-shape conversation by
 #                                    stage0_lme_stitch). Full T-Mem capability
-#                                    enabled (scenes + items + index + L2L3 +
+#                                    enabled (scenes + items + index + Scene/Horizon triggers +
 #                                    main retrieval + persona).
 #                                    used by scripts/eval_longmemeval.sh
 #
 # Usage:
 #   # locomo (default) – behaviour identical to the previous build_memory.sh:
 #   bash scripts/build_memory.sh [--tag <name>] [--stages 1,2,3,...]
-#   T_MEM_ENABLE_L2L3=0 bash scripts/build_memory.sh   # skip stages 4/5
+#   T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS=0 bash scripts/build_memory.sh   # skip stages 4/5
 #
 #   # locomo_plus – stitch + per-sample stages 1..4:
 #   bash scripts/build_memory.sh --mode locomo_plus [--tag <name>] [--limit N] \
@@ -98,16 +98,16 @@ if [[ -z "$STAGES" ]]; then
     if [[ "$MODE" == "locomo" ]]; then
         # Mirror the original (pre-merge) build_memory.sh defaults exactly so
         # `--mode locomo` keeps byte-for-byte legacy behaviour.
-        if [[ "${T_MEM_ENABLE_L2L3:-}" == "0" || \
-              "${T_MEM_ENABLE_L2L3:-}" == "false" || \
-              "${T_MEM_ENABLE_L2L3:-}" == "no" || \
-              "${T_MEM_ENABLE_L2L3:-}" == "off" ]]; then
+if [[ "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "0" || \
+     "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "false" || \
+     "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "no" || \
+     "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "off" ]]; then
             STAGES="1,2,3,6,7"
         else
             STAGES="1,2,3,4,5,6,7"
         fi
     elif [[ "$MODE" == "locomo_plus" ]]; then
-        # locomo_plus eval consumes only scenes/ + l2l3_triggers/, so stage5
+        # locomo_plus eval consumes only scenes/ + scene_horizon_triggers/, so stage5
         # (per-QA top-K), stage6 (retrieval), stage7 (persona) are irrelevant.
         # We still default to "1,2,3,4" -- not the leaner "1,4" -- because
         # stage 2/3 outputs (items + indexes) are cheap insurance against
@@ -270,7 +270,7 @@ echo "  Experiment:  $EXP_DIR"
 echo "  Tag:         ${TAG:-<none>}"
 echo "  Dataset:     $LOCOMO_FILE"
 echo "  Stages:      $STAGES"
-echo "  L2L3 assoc:  ${T_MEM_ENABLE_L2L3:-on}"
+  echo "  Scene/Horizon assoc:  ${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-on}"
 echo "  Failure log: $JSON_FAILURE_LOG"
 echo "  Model ids:   T_mem/config.py :: MODELS (single source of truth)"
 echo "============================================================"
@@ -299,12 +299,12 @@ for s in "${STAGE_ARR[@]}"; do
         1)   run_stage "1 (memory extraction)"     "T_mem.main.stage1_memory_extraction";;
         2)   run_stage "2 (memory-graph extraction)" "T_mem.main.stage2_extraction";;
         3)   run_stage "3 (index building)"          "T_mem.main.stage3_index";;
-        4)   run_stage "4 (L2/L3 trigger extract)" "T_mem.main.stage4_associative_extract";;
+        4)   run_stage "4 (Scene/Horizon trigger extract)" "T_mem.main.stage4_associative_extract";;
         5)
             run_stage "5 (per-QA top-K build)"     "T_mem.main.stage5_retrieval_locomo"
-            if [[ -f "$EXP_DIR/l2l3_topk_per_qa.json" ]]; then
-                export L2L3_ASSOC_TOPK_JSON="$EXP_DIR/l2l3_topk_per_qa.json"
-                echo "[build_memory] L2L3_ASSOC_TOPK_JSON=$L2L3_ASSOC_TOPK_JSON" | tee -a "$LOG_FILE"
+            if [[ -f "$EXP_DIR/scene_horizon_topk_per_qa.json" ]]; then
+                export SCENE_HORIZON_ASSOC_TOPK_JSON="$EXP_DIR/scene_horizon_topk_per_qa.json"
+                echo "[build_memory] SCENE_HORIZON_ASSOC_TOPK_JSON=$SCENE_HORIZON_ASSOC_TOPK_JSON" | tee -a "$LOG_FILE"
             fi
             ;;
         6)   run_stage "6 (retrieval)"              "T_mem.main.stage6_retrieval";;

@@ -1,5 +1,5 @@
-"""L1 Trigger Recaller: tri-view nanmax cosine + hard gate (default 0.85).
-Per-L1 score = nanmax(cos(q, concept), cos(q, bridge), cos(q, joint)); top-K then
+"""Entity/Bridge Trigger Recaller: tri-view nanmax cosine + hard gate (default 0.85).
+Per-trigger score = nanmax(cos(q, concept), cos(q, bridge), cos(q, joint)); top-K then
 items attached to each survivor (already filtered to conf>=0.70 at build time).
 Opt-in only (default OFF if caller never instantiates / passes this recaller)."""
 
@@ -11,18 +11,18 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from T_mem.index.trigger_index import L1Trigger, TriggerGraph
+from T_mem.index.trigger_index import EntityBridgeTrigger, TriggerGraph
 
 
 @dataclass
 class RecalledItem:
-    """One memory item surfaced by the L1 trigger channel."""
+    """One memory item surfaced by the Entity/Bridge trigger channel."""
 
     item_id: str
-    via_l1_concept: str = ""
-    l1_quality: float = 0.0
+    via_entity_concept: str = ""
+    trigger_quality: float = 0.0
     top1_cosine: float = 0.0
-    via_l1_cos: float = 0.0
+    via_trigger_cos: float = 0.0
     via_confidence: float = 0.0
 
 
@@ -54,7 +54,7 @@ class TriggerRecallResult:
 
 
 class TriggerRecaller:
-    """L1-only tri-view nanmax recaller with a hard cosine gate."""
+    """Entity/Bridge tri-view nanmax recaller with a hard cosine gate."""
 
     def __init__(
         self,
@@ -97,8 +97,8 @@ class TriggerRecaller:
     ) -> Optional["TriggerRecaller"]:
         """Load graph+tri-view embeddings; returns None when either artefact is missing."""
         base = Path(trigger_dir)
-        graph_path = base / f"trigger_graph_conv_{conv_id}.json"
-        emb_path = base / f"trigger_embeddings_conv_{conv_id}.npz"
+        graph_path = base / f"entity_bridge_graph_conv_{conv_id}.json"
+        emb_path = base / f"entity_bridge_embeddings_conv_{conv_id}.npz"
 
         if not graph_path.exists() or not emb_path.exists():
             return None
@@ -201,15 +201,15 @@ class TriggerRecaller:
         for cos, idx, lvl in picked:
             tid = self.trigger_ids[idx]
 
-            l1 = self.graph.l1_triggers.get(tid)
-            if l1 is None or not l1.item_confidences:
+            eb = self.graph.entity_bridge_triggers.get(tid)
+            if eb is None or not eb.item_confidences:
                 expansion_reasons.append(
-                    f"L1 {tid} missing/no-items (score={cos:.3f})"
+                    f"trigger {tid} missing/no-items (score={cos:.3f})"
                 )
                 continue
 
             item_list = sorted(
-                l1.item_confidences.items(),
+                eb.item_confidences.items(),
                 key=lambda kv: kv[1],
                 reverse=True,
             )
@@ -222,10 +222,10 @@ class TriggerRecaller:
                 items_out.append(
                     RecalledItem(
                         item_id=iid,
-                        via_l1_concept=l1.concept,
-                        l1_quality=l1.quality,
+                        via_entity_concept=eb.concept,
+                        trigger_quality=eb.quality,
                         top1_cosine=cos,
-                        via_l1_cos=cos,
+                        via_trigger_cos=cos,
                         via_confidence=float(conf),
                     )
                 )
@@ -233,11 +233,11 @@ class TriggerRecaller:
 
             hit_meta.append(
                 TriggerHit(
-                    trigger_id=tid, level=1, concept=l1.concept, cosine=cos
+                    trigger_id=tid, level=1, concept=eb.concept, cosine=cos
                 )
             )
             expansion_reasons.append(
-                f"L1 '{l1.concept[:40]}' score={cos:.3f} (+{expanded_here} items)"
+                f"trigger '{eb.concept[:40]}' score={cos:.3f} (+{expanded_here} items)"
             )
 
         if not items_out:
