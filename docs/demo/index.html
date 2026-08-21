@@ -319,7 +319,7 @@ function pickStage(id){stage=id;render();}
 
 function renderRunLocal(){
   document.getElementById("app").innerHTML = `
-    <p class="rl-note">The online explorer shows pre-computed artifacts. To build memory over your own conversations — or reproduce the paper's benchmarks end to end — run the pipeline locally. It needs an LLM API key (OpenAI, or Tencent Venus internally) and the <span class="mono">bge-m3</span> encoder.</p>
+    <p class="rl-note">The online explorer shows pre-computed artifacts. To build memory over your own conversations — or reproduce the paper's benchmarks end to end — run the pipeline locally. It needs an OpenAI-compatible LLM API key and the <span class="mono">bge-m3</span> encoder.</p>
     <div class="steps">
       <div class="rstep">
         <h3>Clone &amp; install</h3>
@@ -331,12 +331,13 @@ pip install -r requirements.txt</pre>
       <div class="rstep">
         <h3>Set your API key</h3>
         <p>The construction and QA LLMs read credentials from a git-ignored <span class="mono">.env</span>.</p>
-        <pre># OpenAI backend
-export OPENAI_API_KEY="sk-..."
+        <pre># OpenAI-compatible endpoint (chat/completions)
+export T_MEM_LLM_BASE_URL="https://api.openai.com/v1"
+export T_MEM_LLM_API_KEY="sk-..."
 
-# or the Tencent Venus backend (internal)
-export ENV_VENUS_OPENAPI_SECRET_ID="..."
-export ENV_VENUS_OPENAPI_SECRET_KEY="..."</pre>
+# Embedding / reranker endpoints (optional, default to the LLM endpoint)
+#export T_MEM_EMBEDDING_BASE_URL="https://api.openai.com/v1"
+#export T_MEM_RERANKER_BASE_URL="https://api.openai.com/v1"</pre>
       </div>
       <div class="rstep">
         <h3>Add the benchmark data</h3>

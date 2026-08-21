@@ -16,7 +16,7 @@ def _ensure_paths():
     here = Path(__file__).resolve()
     main_dir = here.parent                  # .../T_mem/main
     t_mem_root = main_dir.parent            # .../T_mem
-    project_root = t_mem_root.parent        # .../T_mem_final0505
+    project_root = t_mem_root.parent        # .../T-Mem
     for p in (str(t_mem_root), str(project_root)):
         if p not in sys.path:
             sys.path.insert(0, p)
@@ -25,15 +25,15 @@ def _ensure_paths():
 _ensure_paths()
 
 
-# Bootstrap T_mem providers (sets up Venus LLM + BGE-M3) BEFORE importing them
+# Bootstrap T_mem providers (env overrides + failure logger) BEFORE importing them
 from T_mem.bootstrap import patch_providers  # noqa: E402
 
 patch_providers()
 
 
-from T_mem.llm.venus_provider import VenusLLMProvider  # noqa: E402
-from T_mem.llm.bgem3_provider import (  # noqa: E402
-    EmbeddingProvider as BGEM3EmbeddingProvider,
+from T_mem.llm.llm_provider import LLMProvider  # noqa: E402
+from T_mem.llm.embedding_provider import (  # noqa: E402
+    EmbeddingProvider,
 )
 
 from T_mem.extractors.trigger_extractor import TriggerExtractor, ExtractorConfig  # noqa: E402
@@ -89,8 +89,8 @@ async def build_for_conv(
     conv_id: int,
     mg_path: Path,
     output_dir: Path,
-    llm_provider: VenusLLMProvider,
-    embed_provider: BGEM3EmbeddingProvider,
+    llm_provider: LLMProvider,
+    embed_provider: EmbeddingProvider,
     extractor_cfg: ExtractorConfig,
 ) -> Dict[str, Any]:
     """Run Phase 1~4 for a single conv. Returns build stats dict."""
@@ -189,12 +189,12 @@ async def _amain(args):
     print(f"[build] output_dir = {output_dir}")
     print(f"[build] convs      = {conv_ids}")
 
-    llm_provider = VenusLLMProvider(
+    llm_provider = LLMProvider(
         model=args.llm_model,
         json_max_retries=args.json_retries,
         temperature=0.0,
     )
-    embed_provider = BGEM3EmbeddingProvider(model_name="bge-m3")
+    embed_provider = EmbeddingProvider(model_name="bge-m3")
 
     cfg = ExtractorConfig(
         entity_bridge_count_per_item=args.entity_bridge_per_item,
@@ -272,7 +272,7 @@ def main() -> int:
     ap.add_argument("--entity-bridge-dedup-ratio", type=float, default=0.90,
                     help="rapidfuzz ratio threshold for entity/bridge dedup")
     ap.add_argument("--max-concurrent", type=int, default=14,
-                    help="Concurrent LLM calls (matches venus pool hard cap 14)")
+                    help="Concurrent LLM calls (matches the default pool cap of 14)")
     ap.add_argument("--extract-retries", type=int, default=3,
                     help="Per-item LLM retry count")
     args = ap.parse_args()

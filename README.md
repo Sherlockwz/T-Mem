@@ -122,24 +122,31 @@ pip install -r requirements.txt
 
 # Optional: for JSON repair robustness
 pip install json_repair
-```
 
-> **Note:** `venus_api_base` (Tencent Venus LLM SDK) is an internal dependency and
-> is **not** on PyPI. It is used only by `T_mem/llm/venus_provider.py`. If you run
-> the OpenAI backend only, you can skip it.
+# Copy the env template and fill in your API credentials
+cp .env.example .env
+```
 
 ### Required Environment Variables
 
-Create a `.env` file in the project root (it is git-ignored):
+All external services are accessed through **OpenAI-compatible endpoints**
+(`/chat/completions`, `/embeddings`, `/rerank`), so any provider that speaks the
+OpenAI protocol works — OpenAI, Azure OpenAI, vLLM, Ollama, SiliconFlow, LM
+Studio, etc. Create a `.env` file in the project root (it is git-ignored; see
+[`.env.example`](.env.example)):
 
 ```bash
-# OpenAI backend
-OPENAI_API_KEY=sk-...
+# LLM (chat/completions)
+T_MEM_LLM_BASE_URL=https://api.openai.com/v1
+T_MEM_LLM_API_KEY=sk-...            # falls back to OPENAI_API_KEY
 
-# Tencent Venus backend (optional — internal)
-ENV_VENUS_OPENAPI_SECRET_ID=...
-ENV_VENUS_OPENAPI_SECRET_KEY=...
-VENUS_APP_GROUP_ID=...
+# Embedding (/embeddings) — defaults to the LLM endpoint if unset
+#T_MEM_EMBEDDING_BASE_URL=https://api.openai.com/v1
+#T_MEM_EMBEDDING_MODEL=bge-m3
+
+# Reranker (/rerank) — used by default; set T_MEM_USE_RERANKER=false to disable
+T_MEM_RERANKER_BASE_URL=https://api.openai.com/v1
+T_MEM_RERANKER_MODEL=bge-reranker-v2-m3
 ```
 
 ### Prepare Data
@@ -206,12 +213,13 @@ All model IDs, retrieval top-K values, and directory paths live in
 environment variables:
 
 ```bash
-T_MEM_EXPERIMENT_NAME   # default: T_mem-v3
-T_MEM_RESULTS_DIR       # default: <project_root>/results
-T_MEM_DATA_FILE         # default: data/locomo10.json
-T_MEM_FINAL_KEEP_SCENE  # default: 5   (final scenes in QA prompt)
-T_MEM_FINAL_KEEP_ITEM   # default: 15  (final items in QA prompt)
-T_MEM_USE_RERANKER      # default: true
+T_MEM_EXPERIMENT_NAME     # default: T-mem
+T_MEM_RESULTS_DIR         # default: <project_root>/results
+T_MEM_DATA_FILE           # default: data/locomo10.json
+T_MEM_FINAL_KEEP_SCENE    # default: 5   (final scenes in QA prompt)
+T_MEM_FINAL_KEEP_ITEM     # default: 15  (final items in QA prompt)
+T_MEM_USE_RERANKER        # default: true
+T_MEM_MAX_CONCURRENCY     # default: 14  (global cap on in-flight LLM calls)
 ```
 
 ### Project Structure
@@ -220,13 +228,13 @@ T_MEM_USE_RERANKER      # default: true
 T-Mem/
 ├── T_mem/
 │   ├── config.py         # ExperimentConfig (single source of truth)
-│   ├── bootstrap.py      # LLM / Embedding / Reranker provider injection
+│   ├── bootstrap.py      # env-driven config sync + failure logger
 │   ├── types.py          # Scene, MemoryItem, Topic dataclasses
 │   ├── structure.py      # MemoryGraph (3-layer graph Pydantic models)
 │   ├── extractors/       # scene / topic / memory-item / Entity&Bridge & Scene&Horizon trigger extractors
 │   ├── index/            # BM25 / vector / Entity&Bridge & Scene&Horizon trigger index builders
 │   ├── io/               # predictions adapter + search-result truncator
-│   ├── llm/              # Venus / BGE-M3 / Qwen / tRAG providers
+│   ├── llm/              # OpenAI-compatible LLM / Embedding / Reranker providers
 │   ├── main/             # Pipeline stages (stage0–stage8)
 │   ├── persona/          # Persona profile extraction & QA support
 │   ├── prompts/          # LLM prompt templates

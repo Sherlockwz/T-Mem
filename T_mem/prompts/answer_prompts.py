@@ -1,5 +1,3 @@
-"""LoCoMo answer prompts: NEMORI (concise) and NEMORI_COT (Chain-of-Thought 7-step)."""
-
 ANSWER_PROMPT_NEMORI = """
 You are an intelligent memory assistant tasked with retrieving accurate information from episodic memories.
 
@@ -112,57 +110,6 @@ Question: {question}
 
 Now, follow the Chain-of-Thought process above to answer the question:
 """
-
-# ============================================================================
-# LongMemEval (ICLR 2025) reader prompts.
-# Byte-for-byte aligned with the official reader in
-# `LongMemEval-main/src/generation/run_generation.py::prepare_prompt`,
-# which exposes a `cot ∈ {true, false}` switch (a.k.a. reading_method `con`
-# vs. `direct`). The only change vs. upstream is positional `{}` → named
-# `{context}` / `{question_date}` / `{question}` so we can call
-# `template.format(...)` with kwargs from stage8_qa_lme.
-#
-# Upstream literal templates (run_generation.py, lines 50-54, the no-key-
-# expansion branch — which is what the official baseline runs):
-#
-#   cot=False:
-#     'I will give you several history chats between you and a user. '
-#     'Please answer the question based on the relevant chat history.'
-#     '\n\n\nHistory Chats:\n\n{}\n\nCurrent Date: {}\nQuestion: {}\nAnswer:'
-#
-#   cot=True (reading_method=con):
-#     'I will give you several history chats between you and a user. '
-#     'Please answer the question based on the relevant chat history. '
-#     'Answer the question step by step: first extract all the relevant '
-#     'information, and then reason over the information to get the answer.'
-#     '\n\n\nHistory Chats:\n\n{}\n\nCurrent Date: {}\nQuestion: {}'
-#     '\nAnswer (step by step):'
-#
-# IMPORTANT: the literal triple newline `\n\n\n` between the instruction
-# sentence and `History Chats:` is part of the upstream prompt; do NOT
-# normalise it to `\n\n` or any other whitespace.
-# ============================================================================
-
-# ============================================================================
-# [BENCHMARK ADD-ON] Natural empathetic reply prompt for the Layer-1 probing
-# benchmark Exp-B2. Mirrors the Exp-A baseline reader system prompt so that the
-# ONLY difference between Exp-A and Exp-B2 is where the context comes from
-# (full history vs. T-mem retrieval). {context} = T-mem retrieved context,
-# {question} = the user's latest utterance (the probing query).
-# ============================================================================
-ANSWER_PROMPT_NATURAL = """你是一个聊天助手。下面是从用户与你的历史对话中检索出的、可能相关的片段。请基于这些片段，自然地回应用户的最新一句话。
-不要询问用户某个词是什么意思 —— 如果你不确定，结合上下文做最合理的推断后正常回应。
-不要在回复里提到 "根据历史对话" 或 "我注意到你之前说过"，像一个有连贯记忆的朋友一样自然回应即可。
-
-[检索到的历史片段]
-{context}
-
-[用户最新输入]
-{question}
-
-[你的回应]
-"""
-
 
 ANSWER_PROMPT_LME = (
     "I will give you several history chats between you and a user. "

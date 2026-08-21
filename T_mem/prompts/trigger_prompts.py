@@ -9,7 +9,7 @@ Helpers build_prompt / SCENE_TRIGGER_KEYS / HORIZON_TRIGGER_KEYS are consumed by
 #                          GOAL_ARC / BELIEF_IN_ACTION / LEGACY_ANCHOR)
 
 ENTITY_BRIDGE_TRIGGER_PROMPT = """
-You are an expert in generating retrieval triggers that sit one semantic step above a memory item.
+You are a specialist in generating retrieval triggers that sit one semantic step above a memory item.
 
 Your task: Generate {trigger_count} item-level triggers (Entity + Bridge routes) for the memory item below. Each trigger is a short noun phrase (2-6 words) that, if mentioned later, should reliably pull THIS item to mind.
 
@@ -131,10 +131,8 @@ implicit extension the cue foreshadows.
 
 ### Per-channel bad examples (DO NOT produce these)
 
-- D1 bad: "Joanna cut sugary drinks" - that's just restating the cue, not an arc.
-- D1 bad: "health change" - too generic, no before->after contrast.
+- D1 bad: "Joanna cut sugary drinks" - restating the cue, not an arc.
 - D2 bad: "fear" - too generic; must name what is being avoided and hint at generalization.
-- D2 bad: "carries EpiPen" - that's a concrete action, not an avoidance pattern.
 - D3 bad: "wants to travel to Japan" - restates goal; missing cost/replacement reflex.
 - D4 bad: "likes to ask team for input" - describes behavior, not the belief's fragile edge.
 - D5 bad: "home" / "memory" - too vague; must name a specific concrete anchor.
@@ -217,19 +215,8 @@ _FEW_SHOT_2_ANSWER_FULL = """\
   }
 }"""
 
-_FEW_SHOT_2_ANSWER_HORIZON_ONLY = """\
-{
-  "horizon_channels": {
-    "PERSONAL_ARC":     { "sent": null, "confidence": 0.0 },
-    "AVOIDANCE_HABIT":  { "sent": null, "confidence": 0.0 },
-    "GOAL_ARC":         { "sent": "A large, singular travel commitment that will invite its own cost and replacement reflex - downscaling to smaller local or everyday fulfillment if circumstances change.", "confidence": 0.80 },
-    "BELIEF_IN_ACTION": { "sent": null, "confidence": 0.0 },
-    "LEGACY_ANCHOR":    { "sent": null, "confidence": 0.0 }
-  }
-}"""
-
 _PROMPT_A_PREFIX = (
-    "You are an expert in extracting **cognitive-memory triggers** - compact textual\n"
+    "You are a specialist in extracting **cognitive-memory triggers** - compact textual\n"
     "descriptors that help a future associative query find this cue again, even when\n"
     "the two share almost no literal vocabulary.\n"
     "\n"
@@ -248,7 +235,7 @@ _PROMPT_A_PREFIX = (
     "1. **NEVER peek at a query.** You are given only the cue. Trigger sentences must\n"
     "   be derivable from the cue alone. Do NOT invent details that aren't implied.\n"
     "2. **Scene Trigger is about the cue itself; Horizon Trigger is about what the cue foreshadows.** Do not\n"
-    "   conflate the two layers.\n"
+    "   mix the two layers.\n"
     "3. Scene attributes are **all required**. Horizon channels are **empty when there is no signal**\n"
     "   (sent=null, confidence=0). Never force-fill a channel.\n"
     "4. Every sentence is in **English**. One cue turn != one sentence - synthesize.\n"
@@ -275,7 +262,7 @@ _PROMPT_A_SUFFIX = (
 )
 
 _PROMPT_B_PREFIX = (
-    "You are an expert in extracting **cognitive-memory triggers** - compact textual\n"
+    "You are a specialist in extracting **cognitive-memory triggers** - compact textual\n"
     "descriptors that help a future associative query find this cue again, even when\n"
     "the two share almost no literal vocabulary.\n"
     "\n"
@@ -294,12 +281,9 @@ _PROMPT_B_PREFIX = (
     "   Never force-fill a channel.\n"
     "4. Every sentence is in **English**. Keep each sentence under 35 words.\n"
     "\n---\n\n"
-    "## Few-shot example 1\n\n"
+    "## Few-shot example\n\n"
     "**CUE**\n```\n" + _FEW_SHOT_1_CUE + "\n```\n\n"
     "**Correct output**\n```json\n" + _FEW_SHOT_1_ANSWER_HORIZON_ONLY + "\n```\n\n"
-    "## Few-shot example 2\n\n"
-    "**CUE**\n```\n" + _FEW_SHOT_2_CUE + "\n```\n\n"
-    "**Correct output**\n```json\n" + _FEW_SHOT_2_ANSWER_HORIZON_ONLY + "\n```\n\n"
     "---\n\n"
     "## Now extract from the following cue\n\n"
     "**CUE**\n```\n"

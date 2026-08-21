@@ -1,15 +1,12 @@
 ## T_mem · Python dependencies
 ##
-## 安装:
+## Install:
 ##     pip install -r requirements.txt
 ##
-## 注意:
-##   - venus_api_base (腾讯 Venus LLM SDK) 是内部依赖，不在 PyPI 上。
-##     需要从公司内部源 `pip install venus_api_base` 或本地 wheel 安装,
-##     这个依赖被 T_mem/llm/venus_provider.py 使用。
-##   - 如果只通过 OpenAI-compatible endpoint 调用 LLM / Embedding / Reranker,
-##     可以跳过 venus_api_base。
-##   - json_repair 为可选依赖，用于 LLM JSON 输出解析容错；不安装也不影响运行。
+## Notes:
+##   - All external services (LLM / Embedding / Reranker) are accessed through
+##     OpenAI-compatible endpoints; no provider-specific SDK is required.
+##   - json_repair is optional and used for LLM JSON-output tolerance.
 
 ## ---- core runtime ----
 openai>=1.30.0
@@ -27,5 +24,5 @@ numpy>=1.24.0
 nltk>=3.8.1
 rank_bm25>=0.2.2
 
-## ---- optional: JSON repair (LLM输出容错) ----
+## ---- optional: JSON repair (LLM output tolerance) ----
 json_repair>=0.25.0

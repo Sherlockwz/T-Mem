@@ -2,13 +2,11 @@
 Aggregates mean ± std over --num-runs passes; default judge = T_mem.config.MODELS['locomo_judge']."""
 
 import argparse
-import asyncio
 import json
 import os
 import re
 import sys
 import time
-import traceback
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -29,48 +27,32 @@ if str(_PROJECT_ROOT) not in sys.path:
 from T_mem.config import MODELS  # noqa: E402
 
 
-def call_venus(prompt: str, model: str = None, temperature: float = 0.0, max_tokens: int = 512) -> str:
-    """Call an LLM through Venus API."""
-    import requests as _requests
-    try:
-        from venus_api_base.http_client import HttpClient
-        from venus_api_base.config import Config
-    except ImportError:
-        raise ImportError("venus_api_base is required. Install it first.")
+def call_llm(prompt: str, model: str = None, temperature: float = 0.0, max_tokens: int = 512) -> str:
+    """Call an OpenAI-compatible chat/completions endpoint (see T_mem.llm.llm_provider)."""
+    from T_mem.llm.llm_provider import chat_completion
 
     if model is None:
         model = MODELS["locomo_judge"]
 
-    secret_id = os.environ.get("ENV_VENUS_OPENAPI_SECRET_ID", "")
-    secret_key = os.environ.get("ENV_VENUS_OPENAPI_SECRET_KEY", "")
-    if not secret_id or not secret_key:
-        raise ValueError("ENV_VENUS_OPENAPI_SECRET_ID and ENV_VENUS_OPENAPI_SECRET_KEY must be set.")
-
-    client = HttpClient(config=Config(read_timeout=240), secret_id=secret_id, secret_key=secret_key)
-    header = {'Content-Type': 'application/json'}
-    body = {
-        "appGroupId": int(os.environ.get("VENUS_APP_GROUP_ID", "2700")),
-        "model": model,
-        "messages": [
-            {"role": "system", "content": "You are an expert grader that determines if answers to questions match a gold standard answer"},
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": float(temperature),
-        "do_sample": False,
-    }
-
+    # Include the system prompt inline (chat_completion is a single-turn helper).
+    system_hint = ("You are an expert grader that determines if answers to questions "
+                   "match a gold standard answer.\n\n")
     for attempt in range(3):
         try:
-            ret = client.post('http://v2.open.venus.oa.com/chat/single', header=header, body=json.dumps(body))
-            response = ret['data']['response']
-            if any(err in response for err in ["未知错误", "Overload", "Too many", "模型出错了，请稍后重试", "unable to process your request"]):
-                time.sleep(5)
-                continue
+            response = chat_completion(
+                system_hint + prompt,
+                model=model,
+                timeout=240,
+                max_retries=3,
+                temperature=float(temperature),
+                meta={"call_site": "memos_judge"},
+            )
             return response.strip() if response else "(empty)"
         except Exception as e:
+            print(f"Judge call error (attempt {attempt + 1}/3): {e}")
             time.sleep(5)
             continue
-    return "(Venus API error after 3 retries)"
+    return "(LLM API error after 3 retries)"
 
 
 def extract_label_json(text: str):
@@ -116,7 +98,7 @@ def locomo_grader(question: str, gold_answer: str, response: str, model: str = N
     """
 
     try:
-        raw_response = call_venus(accuracy_prompt, model=model, temperature=0.0)
+        raw_response = call_llm(accuracy_prompt, model=model, temperature=0.0)
         label_json = extract_label_json(raw_response)
         if label_json:
             label = json.loads(label_json)["label"]
@@ -160,7 +142,7 @@ def judge_single_response(response: dict, num_runs: int, model: str) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="MemOS-style LLM Judge evaluation using Venus API")
+    parser = argparse.ArgumentParser(description="MemOS-style LLM Judge evaluation using an OpenAI-compatible endpoint")
     parser.add_argument("--input", type=str, required=True,
                         help="Path to MemOS-format locomo_responses.json")
     parser.add_argument("--output", type=str, required=True,

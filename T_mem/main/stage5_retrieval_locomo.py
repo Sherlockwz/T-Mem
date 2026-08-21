@@ -30,7 +30,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
-logging.getLogger("T_mem.bgem3_embedding").setLevel(logging.WARNING)
+logging.getLogger("T_mem.embedding").setLevel(logging.WARNING)
 log = logging.getLogger("stage5.build_topk")
 
 
@@ -240,7 +240,7 @@ def build_topk(
     if not locomo_file.exists():
         raise SystemExit(f"locomo file missing: {locomo_file}")
 
-    from T_mem.llm.bgem3_provider import EmbeddingProvider
+    from T_mem.llm.embedding_provider import EmbeddingProvider
     emb = EmbeddingProvider(timeout=60, max_retries=5)
 
     locomo = json.load(locomo_file.open("r", encoding="utf-8"))

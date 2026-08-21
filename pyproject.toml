@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "t-mem"
+version = "0.2.0"
+description = "T-Mem: Memory That Anticipates, Not Archives — long-term conversational memory that covers both descriptive and associative recall."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "T-Mem authors" },
+]
+keywords = ["memory", "conversational-ai", "long-context", "retrieval", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "openai>=1.30.0",
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.0",
+    "urllib3>=2.0.0",
+    "rich>=13.7.0",
+    "numpy>=1.24.0",
+    "nltk>=3.8.1",
+    "rank_bm25>=0.2.2",
+]
+
+[project.optional-dependencies]
+json = ["json_repair>=0.25.0"]
+test = ["pytest>=7.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/Sherlockwz/T-Mem"
+Repository = "https://github.com/Sherlockwz/T-Mem"
+Paper = "https://arxiv.org/abs/2606.15405"
+
+[tool.setuptools.packages.find]
+include = ["T_mem*"]
+
+[tool.setuptools.package-data]
+T_mem = ["prompts/*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]

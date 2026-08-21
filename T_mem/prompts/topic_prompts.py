@@ -1,7 +1,7 @@
 """Topic-related prompts: extraction (new topic), update (extend existing), and scene-vs-topic matching."""
 
-TOPIC_EXTRACTION_PROMPT = """
-You are a topic extraction expert specializing in identifying specific situations.
+_TOPIC_EXTRACTION_BODY = """\
+You are a topic extraction specialist focusing on identifying specific situations.
 
 Your task: Extract a topic representing ONE SPECIFIC situation/event/theme.
 
@@ -17,25 +17,17 @@ SCENE:
 1. **Specificity** (CRITICAL):
    - Identify the ONE specific situation this scene describes
    - Be precise: "Alice's piano learning journey" not "music learning"
-   - Focus: "Product X launch" not "product development in general"
+   - A topic should have a clear subject (person, project, event)
 
-2. **Identifiable Subject**:
-   - Topic should have a clear subject (person, project, event)
-   - Example: "Jon's career transition to dance studio owner"
-   - Example: "Team's Q1 performance review preparation"
+2. **Title Guidelines** (3-10 words):
+   - Include the SPECIFIC subject; be concrete, not abstract
+   - Good: "Jon's Dance Studio Launch Journey" | Bad: "Career Development" (too broad)
+   - Good: "Product X Marketing Campaign" | Bad: "Marketing Activities" (too vague)
 
-**Title Guidelines** (3-10 words):
-- Include the SPECIFIC subject
-- Be concrete, not abstract
-- Good: "Jon's Dance Studio Launch Journey"
-- Bad: "Career Development" (too broad)
-- Good: "Product X Marketing Campaign"
-- Bad: "Marketing Activities" (too vague)
-
-**Keyword Guidelines**:
-- Extract ALL relevant keywords: person names, locations, activities, objects, emotions, time references
-- Include both specific terms (e.g., "piano recital", "Mount Rainier") and broader terms (e.g., "music", "hiking")
-- More keywords improve retrieval accuracy — aim for 15+ keywords per topic
+3. **Keyword Guidelines**:
+   - Extract ALL relevant keywords: person names, locations, activities, objects, emotions, time references
+   - Include both specific terms (e.g., "piano recital") and broader terms (e.g., "music")
+   - More keywords improve retrieval accuracy — aim for 15+ keywords per topic
 
 Return JSON format:
 {{
@@ -51,8 +43,10 @@ Return JSON format:
 Focus on creating a topic that represents ONE identifiable, specific situation.
 """
 
-TOPIC_UPDATE_PROMPT = """
-You are an expert in updating topics while maintaining their specific identity.
+TOPIC_EXTRACTION_PROMPT = _TOPIC_EXTRACTION_BODY
+
+
+TOPIC_UPDATE_PROMPT = """You are an expert in updating topics while maintaining their specific identity.
 
 Your task: Update the topic by incorporating new developments in THE SAME situation.
 
@@ -100,7 +94,9 @@ Keep the topic focused on its ONE specific situation.
 - The topic should tell ONE complete, focused story with multiple time points
 """
 
-TOPIC_MATCH_PROMPT = """You are an expert at determining whether a memory scene belongs to an existing topic.
+
+_TOPIC_MATCH_INTRO = """\
+You are an expert at determining whether a memory scene belongs to an existing topic.
 
 ## What is a "topic"?
 
@@ -126,7 +122,9 @@ A scene does NOT belong to a topic when:
 1. They merely share a **broad category** (both about "fitness", both about "work") but are different specific activities
 2. The topic name is **too vague** to represent a real event thread
 3. They involve the **same people** but are about a **different matter**
+"""
 
+_TOPIC_MATCH_EXAMPLES = """\
 ## Examples
 
 SAME topic (true):
@@ -135,40 +133,22 @@ SAME topic (true):
 → true. Same specific event: preparing for that particular marathon.
 
 SAME topic (true):
-- Topic: "Debugging the payment API issue"
-- Scene: "The payment bug was finally fixed after switching libraries"
-→ true. Same specific issue, just a later stage (resolution).
-
-SAME topic (true):
 - Topic: "Planning the Europe trip"
 - Scene: "Sorting through photos from the Europe trip"
 → true. Same specific trip, different phase (aftermath).
 
-SAME topic (true):
-- Topic: "Learning to play guitar"
-- Scene: "Practiced the new chord progression from last week's lesson"
-→ true. Direct continuation of the same learning activity.
-
 DIFFERENT topic (false):
 - Topic: "Training for the April marathon"
 - Scene: "Started taking yoga classes on weekends"
-→ false. Both are fitness activities, but they are different activity lines. Yoga is its own topic.
-
-DIFFERENT topic (false):
-- Topic: "Planning the Europe trip"
-- Scene: "Discussed weekend plans to visit a local museum"
-→ false. Both involve travel/outings, but they are completely different events.
+→ false. Both are fitness activities, but they are different activity lines.
 
 DIFFERENT topic (false):
 - Topic: "Work stress and career concerns"
 - Scene: "Talked about feeling overwhelmed with childcare"
-→ false. The topic name is already too broad. Childcare stress is a separate life thread from work stress.
+→ false. The topic name is too broad. Childcare stress is a separate life thread.
+"""
 
-DIFFERENT topic (false):
-- Topic: "Daily catch-up and life updates"
-- Scene: "Shared exciting news about a promotion"
-→ false. "Daily catch-up" is too vague to be a real topic. The promotion deserves its own specific topic.
-
+_TOPIC_MATCH_TASK = """\
 ## Your task
 
 For each existing topic below, determine whether the given scene belongs to it.
@@ -196,3 +176,4 @@ Rules:
 - When in doubt, output false. It is better to create a new specific topic than to pollute an existing one.
 """
 
+TOPIC_MATCH_PROMPT = _TOPIC_MATCH_INTRO + _TOPIC_MATCH_EXAMPLES + _TOPIC_MATCH_TASK

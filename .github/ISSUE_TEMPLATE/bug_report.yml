@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a problem with T-Mem
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Commands and configuration (env vars) used.
+      placeholder: |
+        bash scripts/build_memory.sh --mode locomo
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the full error message / stack trace.
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "3.11.7"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "macOS 14 / Ubuntu 22.04 / Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider endpoint
+      description: Which OpenAI-compatible endpoint were you using?
+      options:
+        - OpenAI
+        - vLLM
+        - Ollama
+        - SiliconFlow
+        - Other / not relevant
+    validations:
+      required: false
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security note
+      options:
+        - label: I confirm I did not include any API keys, tokens, or internal hostnames.
+          required: true

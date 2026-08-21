@@ -12,11 +12,10 @@ _RESULTS_DIR_OVERRIDE = os.environ.get("T_MEM_RESULTS_DIR", "").strip()
 RESULTS_DIR = Path(_RESULTS_DIR_OVERRIDE).resolve() if _RESULTS_DIR_OVERRIDE else (PROJECT_ROOT / "results")
 
 
+# Public, OpenAI-compatible model aliases used by the pipeline. These are the
+# model names exactly as they must exist on the OpenAI-compatible endpoint
+# configured via T_MEM_LLM_BASE_URL (e.g. OpenAI, vLLM, SiliconFlow, ...).
 MODELS: dict = {
-    # NOTE: memory_build switched gpt-4.1-mini -> gpt-4o-mini for the Layer-1
-    # benchmark Exp-B, so the ENTIRE pipeline (build + QA) uses one model and
-    # stays cheaper. This deviates from T-mem's original config (which used
-    # gpt-4.1-mini for build). Revert to "gpt-4.1-mini" to restore paper config.
     "memory_build":      "gpt-4o-mini",
     "locomo_qa":         "gpt-4o-mini",
     "locomo_judge":      "gpt-4o-mini",
@@ -24,18 +23,13 @@ MODELS: dict = {
     "locomo_plus_judge": "gemini-2.5-flash",
 }
 
-# Allow overriding the memory-construction model without editing this file, so
-# the paper-faithful build (gpt-4.1-mini) can be selected via env for the
-# construction-cost measurement while leaving the repo default untouched:
+# Override any model alias via env without editing this file:
 #   export T_MEM_MEMORY_BUILD_MODEL=gpt-4.1-mini
+#   export T_MEM_LOCOMO_QA_MODEL=gemini-2.5-pro
+#   export T_MEM_LOCOMO_JUDGE_MODEL=gemini-2.5-pro
 _mb_override = os.environ.get("T_MEM_MEMORY_BUILD_MODEL", "").strip()
 if _mb_override:
     MODELS["memory_build"] = _mb_override
-
-# Same mechanism for the QA / judge models, so the cross-judge (R1-W2) and
-# stronger-backbone (R2-W1) rebuttal experiments can swap models cleanly:
-#   export T_MEM_LOCOMO_QA_MODEL=gemini-2.5-pro
-#   export T_MEM_LOCOMO_JUDGE_MODEL=gemini-2.5-pro
 _qa_override = os.environ.get("T_MEM_LOCOMO_QA_MODEL", "").strip()
 if _qa_override:
     MODELS["locomo_qa"] = _qa_override
@@ -64,15 +58,19 @@ def _detect_num_conv(dataset_path: str) -> int:
 
 
 class ExperimentConfig:
-    experiment_name: str = os.environ.get("T_MEM_EXPERIMENT_NAME", "T_mem-v3")
+    experiment_name: str = os.environ.get("T_MEM_EXPERIMENT_NAME", "T-mem")
     dataset_path: str = os.environ.get(
         "T_MEM_DATA_FILE", str(DATA_DIR / "locomo10.json")
     )
     num_conv: int = _detect_num_conv(dataset_path)
 
+    # Embedding endpoint (OpenAI-compatible). Configure via env:
+    #   T_MEM_EMBEDDING_BASE_URL / T_MEM_EMBEDDING_MODEL
     embedding_config: dict = {
-        "model_name": "bge-m3",
-        "base_url": "http://v2.open.venus.oa.com/llmproxy/embeddings",
+        "model_name": os.environ.get("T_MEM_EMBEDDING_MODEL", "bge-m3"),
+        "base_url": os.environ.get(
+            "T_MEM_EMBEDDING_BASE_URL", "https://api.openai.com/v1"
+        ),
     }
     embedding_max_retries: int = 10
 
@@ -88,7 +86,7 @@ class ExperimentConfig:
     #   (b) Right before QA, T_mem.io.truncate_search_results trims that
     #       wide pool down to `final_keep_scene` / `final_keep_item`
     #       (default 5 / 15) -- THIS is the K that actually enters the QA
-    #       LLM input prompt. Paper-final M1_N15 cell == 5 scene + 15 item.
+    #       LLM input prompt. The paper-final M1_N15 cell == 5 scene + 15 item.
     #
     # Hyper-param sweeps over "how many scenes/items enter QA" therefore
     # only need to vary final_keep_*; the expensive stage6 step is cached.
@@ -103,16 +101,23 @@ class ExperimentConfig:
         "final_keep_item":    int(os.environ.get("T_MEM_FINAL_KEEP_ITEM",    "15")),
     }
 
+    # Reranker (OpenAI-compatible /rerank endpoint). Default ON, matching the
+    # paper config. Requires a rerank-capable endpoint; configure via env:
+    #   T_MEM_RERANKER_BASE_URL / T_MEM_RERANKER_MODEL
     use_reranker: bool = True
     reranker_config: dict = {
-        "model_name": "bge-reranker-v2-m3",
-        "base_url": "http://api.trag.woa.com",
+        "model_name": os.environ.get("T_MEM_RERANKER_MODEL", "bge-reranker-v2-m3"),
+        "base_url": os.environ.get(
+            "T_MEM_RERANKER_BASE_URL", "https://api.openai.com/v1"
+        ),
     }
     reranker_max_retries: int = 10
 
     answer_type: str = "cot"
     llm_service: str = "openai"
 
+    # LLM endpoint (OpenAI-compatible chat/completions). Configure via env:
+    #   T_MEM_LLM_BASE_URL / T_MEM_LLM_API_KEY (or OPENAI_API_KEY)
     llm_config: dict = {
         "openai": {
             "model": MODELS["memory_build"],

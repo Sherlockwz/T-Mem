@@ -23,11 +23,10 @@ from T_mem.bootstrap import patch_providers  # noqa: E402
 
 patch_providers()
 
-from T_mem.llm.venus_provider import VenusLLMProvider  # noqa: E402
+from T_mem.llm.llm_provider import LLMProvider  # noqa: E402
 from T_mem.prompts.answer_prompts import (  # noqa: E402
     ANSWER_PROMPT_NEMORI,
     ANSWER_PROMPT_NEMORI_COT,
-    ANSWER_PROMPT_NATURAL,
 )
 from T_mem.persona.qa_support import (  # noqa: E402
     append_persona_section,
@@ -42,8 +41,6 @@ _logger = logging.getLogger("T_mem.evaluation.stage8_qa_locomo")
 ANSWER_PROMPT_TEMPLATES: Dict[str, str] = {
     "nemori": ANSWER_PROMPT_NEMORI,
     "nemori_cot": ANSWER_PROMPT_NEMORI_COT,
-    # [BENCHMARK ADD-ON] Exp-B2 natural empathetic reply (Layer-1 probing)
-    "natural": ANSWER_PROMPT_NATURAL,
 }
 DEFAULT_ANSWER_PROMPT = "nemori"
 
@@ -54,7 +51,7 @@ MAX_RETRIES = 5
 
 
 async def _answer_one(
-    provider: VenusLLMProvider,
+    provider: LLMProvider,
     prompt: str,
     *,
     answer_prompt_kind: str,
@@ -75,13 +72,6 @@ async def _answer_one(
                 result = parts[1].strip()
                 if result:
                     return result
-            continue
-        if answer_prompt_kind == "natural":
-            # [BENCHMARK ADD-ON] Exp-B2: keep the full natural reply verbatim,
-            # do NOT strip anything (it's a conversational response, not a QA).
-            result = raw.strip()
-            if result:
-                return result
             continue
         result = raw.strip()
         if "Answer:" in result:
@@ -121,7 +111,7 @@ def _assemble_context(
 
 
 async def _answer_record(
-    provider: VenusLLMProvider,
+    provider: LLMProvider,
     record: Dict[str, Any],
     *,
     user_key: str,
@@ -248,7 +238,7 @@ async def _amain(args: argparse.Namespace) -> None:
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    provider = VenusLLMProvider(model=args.model, temperature=0.0)
+    provider = LLMProvider(model=args.model, temperature=0.0)
     sem = asyncio.Semaphore(max(1, args.concurrency))
 
     done_counter = sum(len(s) for s in already.values())

@@ -1,5 +1,5 @@
 """LLM-as-judge evaluator for Locomo-Plus predictions.
-Input: predictions JSONL with (question, gold, pred, sample_idx); judge via Venus single-turn LLM.
+Input: predictions JSONL with (question, gold, pred, sample_idx); judge via an OpenAI-compatible LLM.
 Output: judged JSONL with per-item {label, reason} + aggregate accuracy (majority vote)."""
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ for p in (HERE, LOCOMO_RUNNER_DIR):
 
 from judge_prompts import PROMPT_REGISTRY, get_prompt  # noqa: E402
 from evidence_loader import build_evidence_and_reltype_maps  # noqa: E402
-from memos_judge import call_venus  # noqa: E402
+from memos_judge import call_llm  # noqa: E402
 from T_mem.config import MODELS  # noqa: E402
 
 
@@ -51,7 +51,6 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logging.getLogger("root").setLevel(logging.WARNING)
-logging.getLogger("venus_api_base").setLevel(logging.WARNING)
 log = logging.getLogger("locomo_plus.judge")
 
 
@@ -97,15 +96,15 @@ def judge_one(
         evidence=evidence,
         pred=pred,
     )
-    # call_venus() has a fixed 240s read_timeout and 3-retry loop baked in
-    # (see benchmark_eval/locomo/runner/memos_judge.py::call_venus), so the
+    # call_llm() has a fixed 240s timeout and 3-retry loop baked in
+    # (see benchmark_eval/locomo/runner/memos_judge.py::call_llm), so the
     # `timeout` / `max_retries` kwargs accepted by judge_one are intentionally
     # not forwarded here. They are kept in the signature for CLI / API
     # compatibility with the original run_judge entry points.
     _ = (timeout, max_retries)
     t0 = time.perf_counter()
     try:
-        resp = call_venus(
+        resp = call_llm(
             prompt,
             model=model,
         )
@@ -311,7 +310,7 @@ def main() -> None:
     ap.add_argument(
         "--judge-model", type=str, default=DEFAULT_JUDGE_MODEL,
         help=(
-            "LLM model name passed through to venus. Default comes from "
+            "LLM model name passed through to the judge LLM. Default comes from "
             "T_mem.config.MODELS['locomo_plus_judge'] (" + DEFAULT_JUDGE_MODEL + ")."
         ),
     )

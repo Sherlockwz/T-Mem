@@ -7,9 +7,11 @@ from T_mem.config import MODELS
 
 
 PROFILE_AGGREGATION_MIN_COUNT = 3
-PROFILE_TA_MAX_ITEMS_PER_KEY = 6
+PROFILE_TA_MAX_ITEMS_PER_KEY = 3
 PROFILE_TA_ALLOWED_KEYS = ("personality", "values", "attitudes", "beliefs")
-PROFILE_SHARED_ACTIVITIES_MAX = 15
+PROFILE_SHARED_ACTIVITIES_MAX = 4
+PROFILE_TIMELINE_MAX = 6
+PROFILE_PREFERENCES_MAX_PER_KEY = 5
 PROFILE_IDENTITY_ALLOWED_KEYS = (
     "age", "gender", "origin", "current_location", "occupation",
     "relationship_status", "financial_status", "education",

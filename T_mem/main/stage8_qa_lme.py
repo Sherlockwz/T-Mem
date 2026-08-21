@@ -58,7 +58,7 @@ from T_mem.bootstrap import patch_providers  # noqa: E402
 
 patch_providers()
 
-from T_mem.llm.venus_provider import VenusLLMProvider  # noqa: E402
+from T_mem.llm.llm_provider import LLMProvider  # noqa: E402
 from T_mem.prompts.answer_prompts import (  # noqa: E402
     ANSWER_PROMPT_LME,
     ANSWER_PROMPT_LME_COT,
@@ -144,7 +144,7 @@ def _assemble_context(
         return base_ctx
     return append_persona_section(base_ctx, persona_md)
 
-async def _answer_one(provider: VenusLLMProvider, prompt: str) -> str:
+async def _answer_one(provider: LLMProvider, prompt: str) -> str:
     """Ask the LLM once with retry; returns '' on persistent failure.
 
     NOTE: unlike stage8_qa_locomo which strips around `FINAL ANSWER:`, the
@@ -169,7 +169,7 @@ async def _answer_one(provider: VenusLLMProvider, prompt: str) -> str:
 
 
 async def _answer_record(
-    provider: VenusLLMProvider,
+    provider: LLMProvider,
     record: Dict[str, Any],
     *,
     user_key: str,
@@ -388,7 +388,7 @@ async def _amain(args: argparse.Namespace) -> None:
             responses_out = {}
             already = {}
 
-    provider = VenusLLMProvider(model=args.model, temperature=0.0)
+    provider = LLMProvider(model=args.model, temperature=0.0)
     sem = asyncio.Semaphore(max(1, args.concurrency))
 
     done_counter = sum(len(s) for s in already.values())
@@ -490,7 +490,7 @@ def main() -> int:
                         "Defaults to <memory_dir>/data/stitched_lme.json."
                     ))
     ap.add_argument("--model", default=DEFAULT_MODEL,
-                    help="Reader model alias passed to VenusLLMProvider. "
+                    help="Reader model alias passed to LLMProvider. "
                          "Default = T_mem.config.MODELS['locomo_qa'] (gpt-4o-mini)")
     ap.add_argument(
         "--answer-prompt",

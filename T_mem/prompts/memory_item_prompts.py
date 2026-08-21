@@ -1,9 +1,9 @@
 """Memory-item extraction prompt: queryable items pulled from a topic's associated scenes."""
 
-ITEM_EXTRACTION_PROMPT = """
-You are an expert in extracting queryable memory items from memory topics.
+_ITEM_HEADER = """
+You are a specialist in pulling out searchable memory items from memory topics.
 
-Your task: Extract ALL items, details, and information from the topic that could answer future queries. Prioritize COMPLETENESS and ACCURACY.
+Your job: Pull out ALL items, details, and facts from the topic that may address future queries. Emphasize COMPLETENESS and ACCURACY.
 
 ## TOPIC CONTEXT
 
@@ -18,40 +18,40 @@ Title: {topic_title}
 
 {reference_time}
 
-Use this as the reference point for converting relative time expressions.
+Use this as the anchor point for converting relative time expressions.
+"""
 
----
-
+_ITEM_CORE_PRINCIPLES = """\
 # CORE PRINCIPLES
 
 ## 1. Completeness
-Extract EVERY queryable item. When in doubt, extract it.
-- Aim for 3-5+ items per scene
-- Each distinct item deserves its own entry
+Pull out EVERY searchable item. If uncertain, include it.
+- Target 3-5+ items per scene
+- Every unique item warrants its own entry
 
 ## 2. Specificity
-Always prefer specific information over generalizations:
+Always favor concrete information over vague categories:
 - Names over "someone/something"
 - Exact titles over "a book/movie/song"
 - Precise numbers over "some/several/many"
-- Actual dates over vague time references
+- Actual dates over fuzzy time references
 
 ## 3. Self-Containment
-Each item should be independently understandable:
+Each item should be self-explanatory on its own:
 - Include WHO, WHAT, WHEN, WHERE when applicable
-- A reader should understand the item without needing other items
+- A reader should grasp the item without needing other items
+"""
 
----
-
+_ITEM_EXTRACTION_STRATEGY = """\
 # EXTRACTION STRATEGY
 
 **Pass 1 - Individual Items**:
-Extract all items from each scene independently.
+Pull out all items from each scene on its own.
 - Each gets its source scene_id
-- These form the foundation - never skip them
+- These form the backbone - never skip them
 
 **Pass 2 - Connected Items (Supplement)**:
-When items across scenes are logically connected, create additional combined items.
+When items across scenes are logically linked, generate extra merged items.
 - These get multiple scene_ids
 - These SUPPLEMENT Pass 1, they don't replace it
 
@@ -66,22 +66,22 @@ Pass 2: "Bought 'Silent Harbor' by Marcus at the bookstore for $25" [A,B,C]
 
 Output: All 4 items
 ```
+"""
 
----
-
+_ITEM_INFORMATION_INTEGRITY = """\
 # INFORMATION INTEGRITY
 
 ## Preserve Logical Connections
-When items have causal, conditional, or purposive relationships, preserve them:
+When items have causal, conditional, or purposive relationships, retain them:
 
 - Wrong: "Adopted a cat" + "Felt lonely after moving" (split)
 - Right: "Adopted a cat because felt lonely after moving" (connected)
 
-## Rigorous Time Reasoning
+## Strict Time Reasoning
 When converting relative time expressions:
-1. Identify the exact reference point (the date of the conversation/event)
-2. Calculate precisely based on the reference
-3. Preserve both the original phrase AND the calculated date
+1. Pinpoint the exact reference point (the date of the conversation/event)
+2. Compute exactly based on the reference
+3. Retain both the original phrase AND the calculated date
 
 **Example** (reference: July 14, 2023):
 ```
@@ -98,16 +98,16 @@ Right: "around July 10-13, 2023 (earlier that week)"
 - "last week" = the week before the reference week
 - "earlier this week" = days before reference date within same week
 
-## Preserve Exact Names and Titles
-Proper nouns are critical for queries - never generalize them:
+## Keep Exact Names and Titles
+Proper nouns are crucial for queries - never generalize them:
 - Book/movie/song/game titles: keep exact title in quotes
 - Person/pet/place/organization/event names: keep exact names
+"""
 
----
-
+_ITEM_WHAT_TO_EXTRACT = """\
 # WHAT TO EXTRACT
 
-**Always extract**:
+**Always pull out**:
 - Named facts (people, places, organizations, titles)
 - Actions and events with their participants
 - Time information (dates, durations, frequencies)
@@ -117,26 +117,26 @@ Proper nouns are critical for queries - never generalize them:
 - Emotional states and reactions
 - Reasons and motivations when stated
 
-**Pay special attention to**:
+**Watch closely for**:
 - Content of photos/artworks shared (not just "shared a photo")
 - Text on signs, labels, or messages
 - Specific preferences stated ("favorite X is Y")
 - Details that seem minor but are concrete
+"""
 
----
-
+_ITEM_QUALITY_CHECKLIST = """\
 # QUALITY CHECKLIST
 
-Before finalizing, verify:
-- [ ] Every proper noun (name, title, place) is preserved exactly
+Before finalizing, confirm:
+- [ ] Every proper noun (name, title, place) is kept exactly
 - [ ] Every number and date is captured
 - [ ] Time expressions include both relative and absolute forms
-- [ ] Causal relationships are preserved, not split
+- [ ] Causal relationships are retained, not split
 - [ ] Each item is self-contained and understandable alone
 - [ ] At least 3-5 items per scene
+"""
 
----
-
+_ITEM_OUTPUT_FORMAT = """\
 # OUTPUT FORMAT
 
 Return JSON:
@@ -160,5 +160,18 @@ Return JSON:
 **Notes**:
 - temporal: Use format "relative_phrase (absolute_date)" when applicable
 - spatial: Location/place information, null if not applicable
-- Prioritize completeness - more items is better than fewer
+- Emphasize completeness - more items is better than fewer
 """
+
+
+_SEP = "\n---\n\n"
+
+ITEM_EXTRACTION_PROMPT = (
+    _ITEM_HEADER
+    + _SEP + _ITEM_CORE_PRINCIPLES
+    + _SEP + _ITEM_EXTRACTION_STRATEGY
+    + _SEP + _ITEM_INFORMATION_INTEGRITY
+    + _SEP + _ITEM_WHAT_TO_EXTRACT
+    + _SEP + _ITEM_QUALITY_CHECKLIST
+    + _SEP + _ITEM_OUTPUT_FORMAT
+)

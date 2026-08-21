@@ -5,10 +5,9 @@ Source of truth: `LongMemEval-main/src/evaluation/evaluate_qa.py` (5+1 templates
 no answer-side normalisation, no postprocessing of the hypothesis).
 
 Differences from upstream (deliberate):
-  - LLM transport: `VenusLLMProvider` (T-Mem's existing wrapper around the
-    Venus gateway) instead of OpenAI's python client, because the rest of
-    T-Mem already routes through Venus and the user has confirmed gpt-4o
-    is reachable that way.
+  - LLM transport: T-Mem's OpenAI-compatible `chat_completion` helper instead
+    of OpenAI's python client, so any OpenAI-compatible endpoint configured
+    via `T_MEM_LLM_BASE_URL` can be used.
   - Concurrency: thread-pool of `--concurrency` workers (upstream is purely
     sequential through tqdm). Determinism is preserved because each judge
     call uses temperature=0 and the per-instance label depends only on the
@@ -52,7 +51,7 @@ from T_mem.bootstrap import patch_providers  # noqa: E402
 
 patch_providers()
 
-from T_mem.llm.venus_provider import venus_chat  # noqa: E402
+from T_mem.llm.llm_provider import chat_completion  # noqa: E402
 
 # Local import (sibling module).
 sys.path.insert(0, str(_HERE.parent))
@@ -67,12 +66,10 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
     stream=sys.stdout,
 )
-logging.getLogger("venus_api_base").setLevel(logging.WARNING)
 log = logging.getLogger("lme.judge")
 
 # LongMemEval official judge model. Upstream evaluate_qa.py uses the model
-# alias `gpt-4o`; we route through the same alias via the Venus gateway
-# (which the user has confirmed routes `gpt-4o` correctly).
+# alias `gpt-4o`.
 DEFAULT_JUDGE_MODEL = "gpt-4o"
 DEFAULT_CONCURRENCY = 16
 DEFAULT_TIMEOUT = 240
@@ -110,7 +107,7 @@ def _judge_one(
     )
     t0 = time.perf_counter()
     try:
-        raw = venus_chat(
+        raw = chat_completion(
             prompt,
             model=judge_model,
             timeout=timeout,

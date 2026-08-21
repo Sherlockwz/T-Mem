@@ -12,8 +12,7 @@ produces `scene_list_conv_0..400.json` -- one memory library per plus sample.
 
 Pairing rule: plus_sample[i] uses locomo10[i % len(locomo10)] as its base
 conversation. This matches benchmark_eval/locomo_plus/data/unified_input.py
-(line: `locomo_item = locomo_list[i % len(locomo_list)]`) byte-for-byte, which
-is the same mapping the published 77.31 numbers were produced under.
+(line: `locomo_item = locomo_list[i % len(locomo_list)]`) byte-for-byte.
 
 Run:
     python -m T_mem.main.stage0_locomo_plus_stitch \
@@ -44,7 +43,6 @@ if str(_BUILD_CONV_DIR) not in sys.path:
     sys.path.insert(0, str(_BUILD_CONV_DIR))
 
 from build_conv import (  # noqa: E402
-    parse_locomo_session_time,
     parse_ab_dialogue,
     map_speaker,
     parse_time_gap,

@@ -44,7 +44,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
-logging.getLogger("T_mem.bgem3_embedding").setLevel(logging.WARNING)
+logging.getLogger("T_mem.embedding").setLevel(logging.WARNING)
 log = logging.getLogger("stage5.locomo_plus")
 
 
@@ -105,7 +105,7 @@ def build_locomo_plus_topk(
     if not locomo_plus_file.exists():
         raise SystemExit(f"locomo_plus file missing: {locomo_plus_file}")
 
-    from T_mem.llm.bgem3_provider import EmbeddingProvider
+    from T_mem.llm.embedding_provider import EmbeddingProvider
     emb = EmbeddingProvider(timeout=60, max_retries=5)
 
     samples = json.load(locomo_plus_file.open("r", encoding="utf-8"))

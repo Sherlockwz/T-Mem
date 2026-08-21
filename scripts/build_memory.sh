@@ -111,8 +111,7 @@ if [[ "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "0" || \
         # (per-QA top-K), stage6 (retrieval), stage7 (persona) are irrelevant.
         # We still default to "1,2,3,4" -- not the leaner "1,4" -- because
         # stage 2/3 outputs (items + indexes) are cheap insurance against
-        # later analysis steps that may want them, and this matches the
-        # build_memory_locomo_plus.sh defaults that produced the 77.31 result.
+        # later analysis steps that may want them.
         STAGES="1,2,3,4"
     else
         # lme: full T-Mem capability per the user requirement ("all memory

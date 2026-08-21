@@ -1,6 +1,7 @@
 """Stage 1: Memory extraction (scene boundary detection + scene memory generation)."""
 
 import json
+import re
 import sys
 import uuid
 import asyncio
@@ -34,7 +35,7 @@ console = Console()
 
 def parse_locomo_timestamp(timestamp_str: str) -> datetime:
     """Parse LoCoMo timestamp format (e.g. '3:00 PM on 14 March, 2024') to datetime."""
-    timestamp_str = timestamp_str.replace("\\s+", " ").strip()
+    timestamp_str = re.sub(r"\s+", " ", timestamp_str).strip()
     return datetime.strptime(timestamp_str, "%I:%M %p on %d %B, %Y")
 
 
@@ -365,7 +366,11 @@ async def main():
         # CRITICAL: caps the global Stage-1 LLM peak (in-conv work is already
         # serial inside ConvSceneExtractor). Env override to throttle under load.
         import os as _os
-        _s1c = int(_os.environ.get("T_MEM_VENUS_MAX_WORKERS", "").strip() or 14)
+        _s1c = int(
+            _os.environ.get("T_MEM_MAX_CONCURRENCY", "")
+            or _os.environ.get("T_MEM_VENUS_MAX_WORKERS", "")
+            or 14
+        )
         stage1_sem = asyncio.Semaphore(max(1, _s1c))
 
         async def run_with_completion(task, conv_id):

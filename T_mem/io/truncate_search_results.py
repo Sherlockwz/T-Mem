@@ -26,7 +26,6 @@ import argparse
 import json
 import os
 import re
-import shutil
 import sys
 from pathlib import Path
 
@@ -123,7 +122,13 @@ def _replace_section(ctx: str, header_re: re.Pattern, tag: str, keep_k: int) -> 
     # glue is preserved byte-for-byte).
     if keep_k <= 0:
         new_body = f"No relevant {tag.lower()}s found."
-        trailing_glue = body[last_e:]
+        # Preserve the inter-section glue that followed the last entry so the
+        # next "## " header (or EOS) keeps its exact byte layout and still
+        # matches at line start.
+        last_start = starts[-1]
+        tail_after_last = body[last_start:]
+        content = tail_after_last.rstrip("\n")
+        trailing_glue = tail_after_last[len(content):]
     else:
         keep_k_actual = min(keep_k, len(starts))
         # Build the kept-prefix text by taking the exact byte range from the

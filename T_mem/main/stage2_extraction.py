@@ -622,7 +622,11 @@ async def main():
     # Inter-conv concurrency: default 14 in parallel. In-conv work (TopicExtractor /
     # MemoryItemExtractor awaits) is already sequential, so this caps Stage-2
     # LLM peak. Env override to throttle under load.
-    max_concurrent_tasks = int(os.environ.get("T_MEM_VENUS_MAX_WORKERS", "").strip() or 14)
+    max_concurrent_tasks = int(
+        os.environ.get("T_MEM_MAX_CONCURRENCY", "")
+        or os.environ.get("T_MEM_VENUS_MAX_WORKERS", "")
+        or 14
+    )
     max_concurrent_tasks = max(1, max_concurrent_tasks)
     skip_existing = True
 
@@ -663,37 +667,9 @@ async def main():
     console.print(f"[bold]Token statistics directory:[/bold] {token_stats_dir}")
     console.print("[bold cyan]" + "="*80 + "[/bold cyan]\n")
 
-    # ============================================================
-    # FIXME(TEMPORARY · 0603_lme_500conv_all 专用 · 后续整理代码时删除)
-    # ------------------------------------------------------------
-    # 在 0603_lme_500conv_all 实验中,memory_item_extractor.py 的
-    # `while True` retry 循环遇到 Venus 上游对个别 ITEM_EXTRACTION
-    # prompt 持续 reject 时会无限重试(已实测达到 attempt 1531),把
-    # 整个 stage2 进程吃住。本次实验为快速止损,允许通过环境变量
-    # T_MEM_STAGE2_SKIP_CONVS="185,188" 把死循环涉及的 conv 整条
-    # 跳过,以 99.6%(498/500)的样本完成实验。
-    #
-    # 这是一次性的硬白名单逃生口,不是产品级特性。后续整理代码、
-    # 准备开源时必须:
-    #   1) 删除这整段 `_skip_csv` / `_skip_set` 逻辑及下方 `if str(i)
-    #      in _skip_set` 早退分支;
-    #   2) 真正修复 memory_item_extractor.py:184 的 `while True`
-    #      —— 加 MAX_ATTEMPT 上限,把异常抛回 stage2 外层 100 次配额
-    #      接住,让永远失败的 topic 自然降级成空 items 桶;
-    #   3) 严禁把这个 SKIP 环境变量作为常规 resume / debug 入口复用。
-    # ============================================================
-    _skip_csv = os.environ.get("T_MEM_STAGE2_SKIP_CONVS", "").strip()
-    _skip_set = {s.strip() for s in _skip_csv.split(",") if s.strip()} if _skip_csv else set()
-    if _skip_set:
-        console.print(f"[red][TEMPORARY][/red] T_MEM_STAGE2_SKIP_CONVS active, skipping conv ids: {sorted(_skip_set)}")
-
     conv_files = []
     for i in range(config.num_conv):
         scene_file = scenes_dir / f"scene_list_conv_{i}.json"
-        # FIXME(TEMPORARY · 0603_lme_500conv_all 专用 · 整理代码时连同上方块一起删除)
-        if str(i) in _skip_set:
-            console.print(f"[yellow][!] Conversation {i}: in T_MEM_STAGE2_SKIP_CONVS, skipping[/yellow]")
-            continue
         if scene_file.exists():
             conv_files.append((str(i), scene_file))
         else:

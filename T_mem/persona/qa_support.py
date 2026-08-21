@@ -89,7 +89,7 @@ def _norm_str(s: Any) -> str:
 
 
 def _downgrade_to_single(raw: Any) -> Dict[str, str]:
-    """identity field: dict[str, str] with list-fallback (mirrors ver4.2)."""
+    """identity field: dict[str, str] with list-fallback."""
     out: Dict[str, str] = {}
     if not isinstance(raw, dict):
         return out
@@ -260,8 +260,9 @@ def render_persona_md(person_name: str, data: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-# CRITICAL: T_mem conv_id is 0-indexed but ver4.2 qa_conv<N> is 1-indexed
-# (conv_id=0 ↔ qa_conv1). Multiple timestamp-prefixed dirs may exist; pick lex-last.
+# CRITICAL: T_mem conv_id is 0-indexed but the persona store uses qa_conv<N>
+# 1-indexed (conv_id=0 ↔ qa_conv1). Multiple timestamp-prefixed dirs may
+# exist; pick lex-last.
 def _find_persona_dir(store_root: Path, conv_id: int) -> Optional[Path]:
     if not store_root.is_dir():
         return None

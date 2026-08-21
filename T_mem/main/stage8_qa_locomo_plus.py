@@ -23,7 +23,7 @@ from T_mem.bootstrap import patch_providers  # noqa: E402
 
 patch_providers()
 
-from T_mem.llm.venus_provider import VenusLLMProvider  # noqa: E402
+from T_mem.llm.llm_provider import LLMProvider  # noqa: E402
 from T_mem.config import MODELS  # noqa: E402
 
 _logger = logging.getLogger("T_mem.evaluation.stage8_qa_locomo_plus")
@@ -131,7 +131,7 @@ def _load_trigger_map(locomo_plus_file: Path) -> Dict[int, Tuple[str, str]]:
 
 
 async def _answer_one(
-    provider: VenusLLMProvider,
+    provider: LLMProvider,
     prompt: str,
 ) -> str:
     """Ask the LLM once with retry; returns an error marker on persistent failure."""
@@ -151,7 +151,7 @@ async def _answer_one(
 
 
 async def _answer_record(
-    provider: VenusLLMProvider,
+    provider: LLMProvider,
     *,
     sample_id: str,
     trigger: str,
@@ -298,7 +298,7 @@ async def _amain(args: argparse.Namespace) -> None:
             )
             done = {}
 
-    provider = VenusLLMProvider(model=args.model, temperature=0.0)
+    provider = LLMProvider(model=args.model, temperature=0.0)
     sem = asyncio.Semaphore(max(1, args.concurrency))
 
     # Schedule tasks for every sample that has both a topk entry and a valid

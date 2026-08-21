@@ -21,7 +21,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from T_mem.llm.venus_provider import VenusLLMProvider  # noqa: E402
+from T_mem.llm.llm_provider import LLMProvider  # noqa: E402
 from T_mem.prompts.trigger_prompts import build_prompt, SCENE_TRIGGER_KEYS, HORIZON_TRIGGER_KEYS, N_TURNS_SKIP  # type: ignore  # noqa: E402
 from T_mem.config import ExperimentConfig, MODELS  # noqa: E402
 
@@ -34,7 +34,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logging.getLogger("root").setLevel(logging.WARNING)
-logging.getLogger("T_mem.venus_llm").setLevel(logging.WARNING)
+logging.getLogger("T_mem.llm").setLevel(logging.WARNING)
 log = logging.getLogger("stage4.extract")
 
 TERMINAL_STATUSES = {
@@ -97,7 +97,7 @@ def scene_to_dialogue(sc: dict) -> str:
     return "\n".join(lines)
 
 async def extract_one_scene(
-    llm: VenusLLMProvider,
+    llm: LLMProvider,
     sem: asyncio.Semaphore,
     conv_id: str,
     scene_id: str,
@@ -149,7 +149,7 @@ async def extract_one_scene(
 
 
 async def process_conv(
-    llm: VenusLLMProvider,
+    llm: LLMProvider,
     conv_id: int,
     scenes_path: Path,
     out_file: Path,
@@ -280,10 +280,10 @@ async def run_extract(
 
     log.info("Triggers output dir: %s", out_dir)
 
-    llm = VenusLLMProvider(
+    llm = LLMProvider(
         model=model,
         timeout=timeout,
-        venus_retries=3,
+        retries=3,
         json_max_retries=3,
         max_workers=max(14, concurrency + 2),
     )

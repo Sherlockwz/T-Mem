@@ -27,9 +27,11 @@ from T_mem.persona.common import (
     PROFILE_TA_ALLOWED_KEYS,
     PROFILE_IDENTITY_ALLOWED_KEYS,
     PROFILE_SHARED_ACTIVITIES_MAX,
+    PROFILE_TIMELINE_MAX,
+    PROFILE_PREFERENCES_MAX_PER_KEY,
 )
 from T_mem.prompts.persona_prompts import PROFILE_EXTRACT_PROMPT
-from T_mem.llm.venus_provider import venus_chat
+from T_mem.llm.llm_provider import chat_completion
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +206,8 @@ class ProfileMemory:
                             continue
                         seen.add(norm)
                         existing.append(item if isinstance(item, str) else str(item))
+                    if len(existing) > PROFILE_PREFERENCES_MAX_PER_KEY:
+                        profile.preferences[sub_key] = existing[-PROFILE_PREFERENCES_MAX_PER_KEY:]
         except Exception as e:
             logger.warning("[Profile] merge preferences failed: %s", e)
 
@@ -361,6 +365,8 @@ class ProfileMemory:
                         continue
                     seen_pairs.add(key)
                     profile.timeline.append(dict(ev))
+                if len(profile.timeline) > PROFILE_TIMELINE_MAX:
+                    profile.timeline = profile.timeline[-PROFILE_TIMELINE_MAX:]
         except Exception as e:
             logger.warning("[Profile] merge timeline failed: %s", e)
 
@@ -372,7 +378,7 @@ class ProfileMemory:
         chat_history: str,
         current_time: str,
     ) -> dict:
-        """Invoke the Venus LLM once for one speaker; return a delta dict."""
+        """Invoke the LLM once for one speaker; return a delta dict."""
         try:
             current_profile_json_str = json.dumps(
                 current_profile.to_json(), ensure_ascii=False, indent=2
@@ -394,14 +400,14 @@ class ProfileMemory:
             return {}
 
         try:
-            raw = venus_chat(
+            raw = chat_completion(
                 llm_input,
                 model=PERSONA_EXTRACT_MODEL,
                 timeout=PERSONA_EXTRACT_TIMEOUT,
                 meta={"call_site": "stage7.persona"},
             )
         except Exception as e:
-            logger.warning("[Profile] venus_chat failed (speaker=%s): %s", speaker_name, e)
+            logger.warning("[Profile] chat_completion failed (speaker=%s): %s", speaker_name, e)
             return {}
 
         if not raw or not isinstance(raw, str):
