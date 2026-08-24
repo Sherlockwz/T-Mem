@@ -108,7 +108,6 @@ ablations, and efficiency analysis.
 |---------------|----------------------------|--------|----------------------------|
 | LoCoMo        | `locomo10.json`            | 10     | `--mode locomo` (default)  |
 | LoCoMo-Plus   | `locomo_plus.json`         | 401    | `--mode locomo_plus`       |
-| LongMemEval-S | `longmemeval_s_cleaned.json` | 500  | `--mode lme`               |
 
 ---
 
@@ -156,7 +155,6 @@ redistributed in this repo):
 
 - `benchmark_eval/locomo/data/locomo10.json`
 - `benchmark_eval/locomo_plus/data/locomo_plus.json`
-- `benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json`
 
 ---
 
@@ -168,9 +166,6 @@ bash scripts/build_memory.sh --mode locomo --tag my_run
 
 # LoCoMo-Plus (401 per-sample libraries; smoke-test with 25 samples)
 bash scripts/build_memory.sh --mode locomo_plus --tag smoke25 --limit 25
-
-# LongMemEval-S (500 per-instance libraries)
-bash scripts/build_memory.sh --mode lme --tag full
 ```
 
 ---
@@ -183,9 +178,6 @@ bash scripts/eval_locomo.sh --resume results/<experiment_dir>
 
 # LoCoMo-Plus
 bash scripts/eval_locomo_plus.sh --resume results/<experiment_dir>
-
-# LongMemEval
-bash scripts/eval_longmemeval.sh --resume results/<experiment_dir>
 ```
 
 ---
@@ -196,7 +188,7 @@ bash scripts/eval_longmemeval.sh --resume results/<experiment_dir>
 
 | Stage | Name                          | Input                    | Output                                          |
 |-------|-------------------------------|--------------------------|-------------------------------------------------|
-| 0     | Stitch (LoCoMo-Plus / LME)    | raw dataset              | stitched `locomo10`-shape JSON                  |
+| 0     | Stitch (LoCoMo-Plus)          | raw dataset              | stitched `locomo10`-shape JSON                  |
 | 1     | Scene Extraction              | stitched dialogues       | `scene_list_conv_*.json`                        |
 | 2     | Memory Graph Extraction       | scenes                   | `memory_graph_conv_*.json`, `items_conv_*.json` |
 | 3     | Index Building                | memory graphs            | BM25 `.pkl` + vector `.pkl` per conv            |
@@ -204,7 +196,7 @@ bash scripts/eval_longmemeval.sh --resume results/<experiment_dir>
 | 5     | Per-QA Top-K (RRF Fusion)     | scenes + triggers        | `scene_horizon_topk_per_qa.json`                         |
 | 6     | Hierarchical Retrieval        | all indexes + top-K      | `search_results.json`                           |
 | 7     | Persona Extraction (optional) | scenes                   | `personas/`                                     |
-| 8     | QA Generation                 | search_results + personas | `responses.json` / `hypothesis.jsonl`          |
+| 8     | QA Generation                 | search_results + personas | `responses.json`                               |
 
 ### Configuration
 
@@ -242,13 +234,11 @@ T-Mem/
 │   └── utils/            # datetime helpers + logger
 ├── benchmark_eval/
 │   ├── locomo/           # LoCoMo judge + format converter
-│   ├── locomo_plus/      # LoCoMo-Plus judge + data scripts
-│   └── longmemeval/      # LongMemEval judge + smoke-subset maker
+│   └── locomo_plus/      # LoCoMo-Plus judge + data scripts
 ├── scripts/
-│   ├── build_memory.sh   # Single entry point for all 3 modes
+│   ├── build_memory.sh   # Single entry point for both modes
 │   ├── eval_locomo.sh
-│   ├── eval_locomo_plus.sh
-│   └── eval_longmemeval.sh
+│   └── eval_locomo_plus.sh
 ├── assets/               # paper figures
 ├── requirements.txt
 └── README.md
@@ -259,8 +249,7 @@ T-Mem/
 ## 6. Tips
 
 - **Concurrency & cost.** Build and evaluation issue many LLM calls; tune
-  concurrency and watch API cost, especially on LoCoMo-Plus (401 convs) and
-  LongMemEval-S (500 instances).
+  concurrency and watch API cost, especially on LoCoMo-Plus (401 convs).
 - **Resume mode.** Every `eval_*.sh` supports `--resume results/<dir>` to pick up
   a partially completed run without recomputing indexes.
 - **Smoke test first.** Use `--limit 25` (or the smoke subsets under

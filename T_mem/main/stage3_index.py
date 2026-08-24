@@ -17,8 +17,8 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from rank_bm25 import BM25Okapi
 from rich.progress import (
-    Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn,
-    TimeElapsedColumn, TimeRemainingColumn, MofNCompleteColumn
+    Progress, SpinnerColumn, TextColumn, BarColumn,
+    TimeElapsedColumn, TimeRemainingColumn
 )
 from rich.console import Console
 
@@ -332,7 +332,7 @@ async def build_bm25_index_for_memory_graph(
     failed_count = 0
     for r in results:
         if isinstance(r, tuple) and len(r) >= 3:
-            success, status = r[1], r[2]
+            status = r[2]
             if status == "skipped":
                 skipped_count += 1
             elif status == "completed":
@@ -342,7 +342,7 @@ async def build_bm25_index_for_memory_graph(
         elif isinstance(r, Exception):
             failed_count += 1
 
-    console.print(f"\n[bold green][OK] BM25 index building complete[/bold green]")
+    console.print("\n[bold green][OK] BM25 index building complete[/bold green]")
     console.print(f"    New: {completed_count}, Skipped: {skipped_count}, Failed: {failed_count}")
 
 
@@ -632,7 +632,7 @@ async def build_embedding_index_for_memory_graph(
     failed_count = 0
     for r in results:
         if isinstance(r, tuple) and len(r) >= 3:
-            success, status = r[1], r[2]
+            status = r[2]
             if status == "skipped":
                 skipped_count += 1
             elif status == "completed":
@@ -642,7 +642,7 @@ async def build_embedding_index_for_memory_graph(
         elif isinstance(r, Exception):
             failed_count += 1
 
-    console.print(f"\n[bold green][OK] Embedding index building complete[/bold green]")
+    console.print("\n[bold green][OK] Embedding index building complete[/bold green]")
     console.print(f"    New: {completed_count}, Skipped: {skipped_count}, Failed: {failed_count}")
 
 

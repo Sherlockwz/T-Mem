@@ -2,7 +2,7 @@
 # ============================================================
 # T_mem · Memory-library build script (single entry point).
 #
-# Three modes share this one script:
+# Two modes share this one script:
 #   --mode locomo       (default)  → 10-conv main library; stages 1..7
 #                                    used by scripts/eval_locomo.sh
 #   --mode locomo_plus              → 401-conv per-sample libraries; stages 1..4
@@ -10,14 +10,6 @@
 #                                    base_conv (i % 10) at last_session+7d, then
 #                                    runs stages on the 401-conv stitched json).
 #                                    used by scripts/eval_locomo_plus.sh
-#   --mode lme                      → 500-conv per-instance libraries; stages 1..7
-#                                    (LongMemEval-S; each instance is its own
-#                                    haystack history of 38–62 sessions, stitched
-#                                    into a locomo10-shape conversation by
-#                                    stage0_lme_stitch). Full T-Mem capability
-#                                    enabled (scenes + items + index + Scene/Horizon triggers +
-#                                    main retrieval + persona).
-#                                    used by scripts/eval_longmemeval.sh
 #
 # Usage:
 #   # locomo (default) – behaviour identical to the previous build_memory.sh:
@@ -28,21 +20,12 @@
 #   bash scripts/build_memory.sh --mode locomo_plus [--tag <name>] [--limit N] \
 #        [--stages 1,2,3,4] [--locomo-plus-file <abs>]
 #
-#   # lme – stitch LongMemEval-S + per-instance stages 1..7:
-#   bash scripts/build_memory.sh --mode lme [--tag <name>] [--limit N] \
-#        [--stages 1,2,3,4,5,6,7] [--lme-file <abs>]
-#
 # Smoke (25-sample plus) example:
 #   bash scripts/build_memory.sh --mode locomo_plus --tag smoke25 --limit 25
-#
-# Smoke (14-instance lme) example:
-#   bash scripts/build_memory.sh --mode lme --tag smoke14 \
-#        --lme-file benchmark_eval/longmemeval/data/longmemeval_s_smoke14.json
 #
 # Next step:
 #   bash scripts/eval_locomo.sh       --resume <experiment_dir>   # mode=locomo
 #   bash scripts/eval_locomo_plus.sh  --resume <experiment_dir>   # mode=locomo_plus
-#   bash scripts/eval_longmemeval.sh  --resume <experiment_dir>   # mode=lme
 #
 # Model ids are declared in T_mem/config.py :: MODELS (not via shell).
 # ============================================================
@@ -55,17 +38,15 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 # ---------------- Defaults ----------------
 LOCOMO_FILE_DEFAULT="$PROJECT_ROOT/benchmark_eval/locomo/data/locomo10.json"
 LOCOMO_PLUS_FILE_DEFAULT="$PROJECT_ROOT/benchmark_eval/locomo_plus/data/locomo_plus.json"
-LME_FILE_DEFAULT="$PROJECT_ROOT/benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json"
 
 MODE="locomo"
 TAG=""
 RESUME_DIR=""
 LOCOMO_FILE="${T_MEM_LOCOMO_FILE:-$LOCOMO_FILE_DEFAULT}"
 LOCOMO_PLUS_FILE="${T_MEM_LOCOMO_PLUS_FILE:-$LOCOMO_PLUS_FILE_DEFAULT}"
-LME_FILE="${T_MEM_LME_FILE:-$LME_FILE_DEFAULT}"
 OUT_DIR_OVERRIDE=""
 STAGES=""              # filled in below per-mode after arg parse
-LIMIT=""               # locomo_plus / lme only
+LIMIT=""               # locomo_plus only
 
 # ---------------- Arg parsing ----------------
 while [[ $# -gt 0 ]]; do
@@ -76,11 +57,10 @@ while [[ $# -gt 0 ]]; do
         --resume)           RESUME_DIR="$2";       shift 2;;
         --locomo-file)      LOCOMO_FILE="$2";      shift 2;;
         --locomo-plus-file) LOCOMO_PLUS_FILE="$2"; shift 2;;
-        --lme-file)         LME_FILE="$2";         shift 2;;
         --out-dir)          OUT_DIR_OVERRIDE="$2"; shift 2;;
         --limit)            LIMIT="$2";            shift 2;;
         -h|--help)
-            sed -n '2,32p' "$0"
+            sed -n '2,31p' "$0"
             exit 0;;
         *)
             echo "[build_memory] unknown arg: $1" >&2
@@ -89,8 +69,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$MODE" in
-    locomo|locomo_plus|lme) ;;
-    *) echo "[build_memory] FATAL: --mode must be locomo|locomo_plus|lme, got: $MODE" >&2; exit 2;;
+    locomo|locomo_plus) ;;
+    *) echo "[build_memory] FATAL: --mode must be locomo|locomo_plus, got: $MODE" >&2; exit 2;;
 esac
 
 # ---------------- Mode-specific defaults ----------------
@@ -113,10 +93,6 @@ if [[ "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "0" || \
         # stage 2/3 outputs (items + indexes) are cheap insurance against
         # later analysis steps that may want them.
         STAGES="1,2,3,4"
-    else
-        # lme: full T-Mem capability per the user requirement ("all memory
-        # libraries should be present"). Mirrors the LoCoMo full-stage default.
-        STAGES="1,2,3,4,5,6,7"
     fi
 fi
 
@@ -128,13 +104,6 @@ if [[ "$MODE" == "locomo_plus" ]]; then
     fi
     if [[ ! -f "$LOCOMO_PLUS_FILE" ]]; then
         echo "[build_memory] FATAL: $LOCOMO_PLUS_FILE missing" >&2
-        exit 2
-    fi
-fi
-
-if [[ "$MODE" == "lme" ]]; then
-    if [[ ! -f "$LME_FILE" ]]; then
-        echo "[build_memory] FATAL: $LME_FILE missing (LongMemEval data file)" >&2
         exit 2
     fi
 fi
@@ -157,14 +126,6 @@ else
             EXP_DIR="$RESULTS_ROOT/locomo_plus_${TIMESTAMP}__${TAG}"
         else
             EXP_DIR="$RESULTS_ROOT/locomo_plus_${TIMESTAMP}"
-        fi
-    elif [[ "$MODE" == "lme" ]]; then
-        # Always prefix lme runs so the 500-conv per-instance libraries are
-        # visually distinct from LoCoMo / LoCoMo-Plus runs in $RESULTS_ROOT.
-        if [[ -n "$TAG" ]]; then
-            EXP_DIR="$RESULTS_ROOT/lme_${TIMESTAMP}__${TAG}"
-        else
-            EXP_DIR="$RESULTS_ROOT/lme_${TIMESTAMP}"
         fi
     else
         if [[ -n "$TAG" ]]; then
@@ -214,42 +175,6 @@ if [[ "$MODE" == "locomo_plus" ]]; then
         exit 3
     fi
     # Stages 1..4 read the dataset via T_MEM_DATA_FILE; redirect to stitched.
-    LOCOMO_FILE="$STITCHED_FILE"
-fi
-
-# ---------------- Mode=lme: stage0 stitch (LongMemEval -> locomo10-shape) ----------------
-# Produces stitched_lme.json -- one locomo10-shape conversation per LongMemEval
-# question instance (38–62 sessions / instance, 500 instances total). Stages
-# 1..7 then run on this stitched json so each instance gets its own scene /
-# trigger / persona library.
-if [[ "$MODE" == "lme" ]]; then
-    DATA_DIR="$EXP_DIR/data"
-    mkdir -p "$DATA_DIR"
-    STITCHED_FILE="$DATA_DIR/stitched_lme.json"
-
-    echo "" | tee -a "$LOG_FILE"
-    echo "============================================================" | tee -a "$LOG_FILE"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Stage 0 (lme stitch)" | tee -a "$LOG_FILE"
-    echo "============================================================" | tee -a "$LOG_FILE"
-    LIMIT_ARGS=()
-    if [[ -n "$LIMIT" ]]; then
-        LIMIT_ARGS=(--limit "$LIMIT")
-    fi
-    PYTHONPATH="$PROJECT_ROOT:${PYTHONPATH:-}" \
-    python3 -u -m T_mem.main.stage0_lme_stitch \
-        --lme-file  "$LME_FILE" \
-        --out-file  "$STITCHED_FILE" \
-        "${LIMIT_ARGS[@]}" 2>&1 | tee -a "$LOG_FILE"
-    rc=${PIPESTATUS[0]}
-    if [[ "$rc" -ne 0 ]]; then
-        echo "[build_memory] Stage 0 (lme stitch) failed with exit $rc" | tee -a "$LOG_FILE"
-        exit "$rc"
-    fi
-    if [[ ! -f "$STITCHED_FILE" ]]; then
-        echo "[build_memory] FATAL: stitch did not produce $STITCHED_FILE" >&2
-        exit 3
-    fi
-    # Stages 1..7 read the dataset via T_MEM_DATA_FILE; redirect to stitched.
     LOCOMO_FILE="$STITCHED_FILE"
 fi
 
@@ -340,9 +265,7 @@ echo ""                                       | tee -a "$LOG_FILE"
 echo "  Next:"                                | tee -a "$LOG_FILE"
 if [[ "$MODE" == "locomo" ]]; then
     echo "    bash scripts/eval_locomo.sh      --resume $EXP_DIR" | tee -a "$LOG_FILE"
-elif [[ "$MODE" == "locomo_plus" ]]; then
-    echo "    bash scripts/eval_locomo_plus.sh --resume $EXP_DIR" | tee -a "$LOG_FILE"
 else
-    echo "    bash scripts/eval_longmemeval.sh --resume $EXP_DIR" | tee -a "$LOG_FILE"
+    echo "    bash scripts/eval_locomo_plus.sh --resume $EXP_DIR" | tee -a "$LOG_FILE"
 fi
 echo "============================================================" | tee -a "$LOG_FILE"

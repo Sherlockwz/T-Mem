@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import List, Optional, Dict
 from datetime import datetime
 from rich.progress import (
-    Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn,
-    TimeElapsedColumn, TimeRemainingColumn, MofNCompleteColumn
+    Progress, SpinnerColumn, TextColumn, BarColumn,
+    TimeElapsedColumn, TimeRemainingColumn
 )
 from rich.console import Console
 
@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from T_mem.bootstrap import patch_providers  # noqa: E402
 patch_providers()
 
-from T_mem.utils.datetime_utils import from_iso_format, get_now_with_timezone, to_iso_format
+from T_mem.utils.datetime_utils import from_iso_format, to_iso_format
 from T_mem.llm.llm_provider import LLMProvider
 from T_mem.types import Scene, RawDataType, MemoryItem, Topic
 from T_mem.extractors.memory_item_extractor import (
@@ -237,7 +237,7 @@ async def extract_topics_for_scenes(
     if not scenes:
         return None
 
-    console.print(f"  [*] Using LLM-based topic matching (TopicExtractor)")
+    console.print("  [*] Using LLM-based topic matching (TopicExtractor)")
     topic_extractor = TopicExtractor(
         llm_provider=llm_provider,
         topic_match_batch_size=10,
@@ -248,7 +248,7 @@ async def extract_topics_for_scenes(
     if len(scenes) >= 1:
         try:
             first_scene = scenes[0]
-            console.print(f"  [*] Creating initial topic for the first scene...")
+            console.print("  [*] Creating initial topic for the first scene...")
 
             topic = await topic_extractor._extract_new_topic([first_scene])
 
@@ -465,7 +465,7 @@ async def process_single_conversation(
                 try:
                     cached_items = load_item_results(conv_id, items_dir)
                     if cached_items is not None:
-                        console.print(f"  [green]✓ Item cache loaded successfully[/green]")
+                        console.print("  [green]✓ Item cache loaded successfully[/green]")
                 except Exception as e:
                     console.print(f"  [yellow]⚠ Item cache loading error: {e}, will re-extract[/yellow]")
                     cached_items = None
@@ -624,7 +624,6 @@ async def main():
     # LLM peak. Env override to throttle under load.
     max_concurrent_tasks = int(
         os.environ.get("T_MEM_MAX_CONCURRENCY", "")
-        or os.environ.get("T_MEM_VENUS_MAX_WORKERS", "")
         or 14
     )
     max_concurrent_tasks = max(1, max_concurrent_tasks)
@@ -635,7 +634,7 @@ async def main():
     console.print(f"[bold]Number of conversations:[/bold] {config.num_conv}")
     console.print(f"[bold]Concurrency:[/bold] {max_concurrent_tasks}")
     console.print(f"[bold]Skip existing:[/bold] {'Yes' if skip_existing else 'No'}")
-    console.print(f"[bold]Pipeline:[/bold] scene → topic → item → memory graph\n")
+    console.print("[bold]Pipeline:[/bold] scene → topic → item → memory graph\n")
 
     llm_config = config.llm_config[config.llm_service].copy()
     provider_type = llm_config.pop('llm_provider', 'openai')
@@ -651,10 +650,10 @@ async def main():
                 base_url=embedding_config["base_url"],
                 model_name=embedding_config["model_name"]
             )
-            console.print(f"[green][OK][/green] Embedding Provider initialized successfully\n")
+            console.print("[green][OK][/green] Embedding Provider initialized successfully\n")
         except Exception as e:
             console.print(f"[red][X] Failed to initialize Embedding Provider: {e}[/red]")
-            console.print(f"[yellow][!] Falling back to LLM version[/yellow]\n")
+            console.print("[yellow][!] Falling back to LLM version[/yellow]\n")
             extractor_type = TopicExtractorType.LLM
 
     console.print("[bold cyan]" + "="*80 + "[/bold cyan]")

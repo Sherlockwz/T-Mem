@@ -2,19 +2,17 @@
 # ============================================================
 # T-Mem · Dataset download script
 #
-# Downloads the three public benchmarks used in the paper into
+# Downloads the two public benchmarks used in the paper into
 # benchmark_eval/<benchmark>/data/. All datasets are publicly
 # available; no credentials required.
 #
 #   LoCoMo       -> benchmark_eval/locomo/data/locomo10.json
 #   LoCoMo-Plus  -> benchmark_eval/locomo_plus/data/locomo_plus.json
-#   LongMemEval  -> benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json
 #
 # Usage:
 #   bash scripts/download_data.sh            # download everything
 #   bash scripts/download_data.sh locomo     # just one benchmark
 #   bash scripts/download_data.sh locomo_plus
-#   bash scripts/download_data.sh longmemeval
 # ============================================================
 set -euo pipefail
 
@@ -52,17 +50,10 @@ locomo_plus() {
     _dl "https://raw.githubusercontent.com/xjtuleeyf/Locomo-Plus/main/data/locomo_plus.json" "$dest"
 }
 
-longmemeval() {
-    local dest="$PROJECT_ROOT/benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json"
-    echo "[longmemeval]"
-    _dl "https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned/resolve/main/longmemeval_s_cleaned.json" "$dest"
-}
-
 case "$TARGET" in
     all)
         locomo
         locomo_plus
-        longmemeval
         ;;
     locomo)
         locomo
@@ -70,11 +61,8 @@ case "$TARGET" in
     locomo_plus)
         locomo_plus
         ;;
-    longmemeval)
-        longmemeval
-        ;;
     *)
-        echo "Usage: bash scripts/download_data.sh [all|locomo|locomo_plus|longmemeval]" >&2
+        echo "Usage: bash scripts/download_data.sh [all|locomo|locomo_plus]" >&2
         exit 1
         ;;
 esac

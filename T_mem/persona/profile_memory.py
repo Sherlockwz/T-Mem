@@ -7,7 +7,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict
 
 try:
     import json_repair  # type: ignore
@@ -22,7 +22,6 @@ from T_mem.persona.common import (
     PROFILE_DEBUG,
     PERSONA_EXTRACT_MODEL,
     PERSONA_EXTRACT_TIMEOUT,
-    PROFILE_AGGREGATION_MIN_COUNT,
     PROFILE_TA_MAX_ITEMS_PER_KEY,
     PROFILE_TA_ALLOWED_KEYS,
     PROFILE_IDENTITY_ALLOWED_KEYS,
@@ -483,138 +482,3 @@ class ProfileMemory:
             except Exception as e:
                 logger.warning("[Profile] save %s failed: %s", fpath, e)
         return target_dir
-
-    def load_profiles(self, subdir: Optional[str] = None) -> None:
-        """Reload profiles from disk if they exist (idempotent)."""
-        label = subdir or self.conv_label
-        target_dir = os.path.join(self.store_root, label)
-        if not os.path.isdir(target_dir):
-            return
-        try:
-            files = [f for f in os.listdir(target_dir) if f.endswith(".json")]
-        except Exception as e:
-            logger.warning("[Profile] list %s failed: %s", target_dir, e)
-            return
-        for fname in files:
-            fpath = os.path.join(target_dir, fname)
-            try:
-                with open(fpath, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                profile = PersonProfile.from_json(data)
-                name = profile.person_name or os.path.splitext(fname)[0]
-                # Only refresh if the speaker matches one of the two registered.
-                if name in self.profiles:
-                    self.profiles[name] = profile
-                    logger.info("[Profile] loaded %s from %s", name, fpath)
-                else:
-                    logger.warning("[Profile] skip unknown speaker %s in %s", name, fpath)
-            except Exception as e:
-                logger.warning("[Profile] read %s failed: %s", fpath, e)
-
-    def render_for_qa(self) -> str:
-        blocks: List[str] = []
-        # Preserve speaker_a -> speaker_b ordering, regardless of dict order.
-        for name in (self.speaker_a, self.speaker_b):
-            profile = self.profiles.get(name)
-            if profile is None or profile.is_empty():
-                continue
-            block = self._render_single(name, profile)
-            if block:
-                blocks.append(block)
-        return "\n\n".join(blocks)
-
-    @staticmethod
-    def _render_single(speaker_name: str, profile: PersonProfile) -> str:
-        lines: List[str] = [f"## Persona Profile — {speaker_name}"]
-
-        # identity
-        if profile.identity:
-            lines.append("[identity]")
-            for k, v in profile.identity.items():
-                if not v:
-                    continue
-                if isinstance(v, list):
-                    nonempty = [x for x in v if x]
-                    txt = str(nonempty[-1]) if nonempty else ""
-                else:
-                    txt = str(v)
-                if txt:
-                    lines.append(f"- {k}: {txt}")
-
-        # traits_and_attitudes
-        if profile.traits_and_attitudes and any(v for v in profile.traits_and_attitudes.values()):
-            lines.append("[traits_and_attitudes]")
-            for k in PROFILE_TA_ALLOWED_KEYS:
-                vals = profile.traits_and_attitudes.get(k) or []
-                if vals:
-                    lines.append(f"- {k}: {', '.join(str(x) for x in vals if x)}")
-            for k, vals in profile.traits_and_attitudes.items():
-                if k in PROFILE_TA_ALLOWED_KEYS:
-                    continue
-                if vals:
-                    lines.append(f"- {k}: {', '.join(str(x) for x in vals if x)}")
-
-        # preferences
-        if profile.preferences and any(v for v in profile.preferences.values()):
-            lines.append("[preferences]")
-            for sub_key, vals in profile.preferences.items():
-                if vals:
-                    lines.append(f"- {sub_key}: {', '.join(str(x) for x in vals)}")
-
-        # relations
-        if profile.relations:
-            rel_lines: List[str] = []
-            for r in profile.relations:
-                person = r.get("person", "")
-                if not person:
-                    continue
-                rtype = r.get("type", "")
-                nick = r.get("nickname", "")
-                acts = r.get("shared_activities") or []
-                extra = f": {rtype}" if rtype else ""
-                line = f"- {person}{extra}"
-                suffixes = []
-                if nick:
-                    suffixes.append(f"nickname: {nick}")
-                if acts:
-                    suffixes.append(f"shared: {', '.join(str(a) for a in acts)}")
-                if suffixes:
-                    line += ", " + ", ".join(suffixes)
-                rel_lines.append(line)
-            if rel_lines:
-                lines.append("[relations]")
-                lines.extend(rel_lines)
-
-        # aggregations (filtered by MIN_COUNT)
-        if profile.aggregations:
-            agg_rendered = [
-                (k, v) for k, v in profile.aggregations.items()
-                if isinstance(v, (int, float)) and v >= PROFILE_AGGREGATION_MIN_COUNT
-            ]
-            if agg_rendered:
-                lines.append("[aggregations]")
-                for k, v in agg_rendered:
-                    lines.append(f"- {k}: {v}")
-
-        # timeline
-        if profile.timeline:
-            tl_lines: List[str] = []
-            for ev in profile.timeline:
-                event = ev.get("event", "")
-                if not event:
-                    continue
-                date = ev.get("date", "")
-                date_range = ev.get("date_range", "")
-                if date_range:
-                    tl_lines.append(f"- {event} (duration: {date_range})")
-                elif date:
-                    tl_lines.append(f"- {event} ({date})")
-                else:
-                    tl_lines.append(f"- {event}")
-            if tl_lines:
-                lines.append("[timeline]")
-                lines.extend(tl_lines)
-
-        if len(lines) <= 1:
-            return ""
-        return "\n".join(lines)

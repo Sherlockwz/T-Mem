@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 
 import nltk
 from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu

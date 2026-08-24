@@ -212,7 +212,7 @@ def stitch_locomo_plus(
     # Sanity: every stitched conv must be parseable by stage1's loader.
     for rec in out_records[:3]:
         c = rec["conversation"]
-        first_t = c[f"session_1_date_time"]
+        first_t = c["session_1_date_time"]
         try:
             datetime.strptime(first_t, _LOCOMO_TS_FMT)
         except Exception as e:  # noqa: BLE001

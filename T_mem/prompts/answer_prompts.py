@@ -110,19 +110,3 @@ Question: {question}
 
 Now, follow the Chain-of-Thought process above to answer the question:
 """
-
-ANSWER_PROMPT_LME = (
-    "I will give you several history chats between you and a user. "
-    "Please answer the question based on the relevant chat history."
-    "\n\n\nHistory Chats:\n\n{context}\n\nCurrent Date: {question_date}"
-    "\nQuestion: {question}\nAnswer:"
-)
-
-ANSWER_PROMPT_LME_COT = (
-    "I will give you several history chats between you and a user. "
-    "Please answer the question based on the relevant chat history. "
-    "Answer the question step by step: first extract all the relevant "
-    "information, and then reason over the information to get the answer."
-    "\n\n\nHistory Chats:\n\n{context}\n\nCurrent Date: {question_date}"
-    "\nQuestion: {question}\nAnswer (step by step):"
-)

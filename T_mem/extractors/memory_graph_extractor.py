@@ -1,6 +1,6 @@
 """Two-layer graph builder: aggregates scenes, topics and memory items into a MemoryGraph."""
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from T_mem.utils.logger import get_logger
 from T_mem.types import Scene
 from T_mem.structure import (
@@ -59,31 +59,3 @@ class MemoryGraphExtractor:
         logger.info(f"[MemoryGraphExtractor] Graph built - {memory_graph.get_stats()}")
 
         return memory_graph
-
-    def get_memory_graph_summary(self, memory_graph: MemoryGraph) -> Dict[str, Any]:
-        stats = memory_graph.get_stats()
-        scene_fanout = [len(sc.item_ids) for sc in memory_graph.scenes.values()]
-        topic_fanout = [len(t.scene_ids) for t in memory_graph.topics.values()]
-        return {
-            "stats": stats,
-            "avg_items_per_scene": (sum(scene_fanout) / len(scene_fanout)) if scene_fanout else 0.0,
-            "avg_scenes_per_topic": (sum(topic_fanout) / len(topic_fanout)) if topic_fanout else 0.0,
-        }
-
-    def print_memory_graph_structure(self, memory_graph: MemoryGraph):
-        logger.info("=" * 80)
-        logger.info("Graph Structure Summary")
-        logger.info("=" * 80)
-
-        summary = self.get_memory_graph_summary(memory_graph)
-
-        logger.info("Node statistics:")
-        logger.info(f"  Items:    {summary['stats']['items']}")
-        logger.info(f"  Scenes:   {summary['stats']['scenes']}")
-        logger.info(f"  Topics:   {summary['stats']['topics']}")
-
-        logger.info("Fan-out:")
-        logger.info(f"  avg items/scene:    {summary['avg_items_per_scene']:.2f}")
-        logger.info(f"  avg scenes/topic:   {summary['avg_scenes_per_topic']:.2f}")
-
-        logger.info("=" * 80)

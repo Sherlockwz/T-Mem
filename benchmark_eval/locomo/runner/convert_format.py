@@ -3,7 +3,6 @@
 import argparse
 import json
 import os
-import sys
 
 CATEGORY_STR_TO_INT = {
     "single-hop": 4,
@@ -102,7 +101,7 @@ def main():
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(all_responses, f, indent=2, ensure_ascii=False)
 
-    print(f"\n[done] conversion complete:")
+    print("\n[done] conversion complete:")
     print(f"  converted: {total_converted}")
     print(f"  skipped adversarial: {total_skipped_adv}")
     print(f"  predictions not found: {total_not_found}")

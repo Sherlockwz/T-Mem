@@ -155,7 +155,7 @@ def main():
                         help="Number of concurrent workers (default: 10)")
     args = parser.parse_args()
 
-    print(f"=== MemOS-style LLM Judge Evaluation ===")
+    print("=== MemOS-style LLM Judge Evaluation ===")
     print(f"  Input: {args.input}")
     print(f"  Model: {args.model}")
     print(f"  Runs per question: {args.num_runs}")
@@ -267,7 +267,7 @@ def print_scores(all_grades: dict, num_runs: int):
         print(f"  ({num_runs} runs over {total_questions} questions)")
         print(f"  Individual run scores: {[round(s, 4) for s in run_scores]}")
 
-    print(f"\n  By Category:")
+    print("\n  By Category:")
     print(f"  {'Category':<25} {'Score':>8} {'Count':>8}")
     print(f"  {'-'*25} {'-'*8} {'-'*8}")
     for cat_name in ["single hop", "multi hop", "temporal reasoning", "open domain", "adversarial"]:
@@ -276,7 +276,7 @@ def print_scores(all_grades: dict, num_runs: int):
             avg = np.mean(data["correct"]) if data["correct"] else 0.0
             print(f"  {cat_name:<25} {avg:>8.4f} {data['total']:>8}")
 
-    print(f"\n  By User:")
+    print("\n  By User:")
     print(f"  {'User':<30} {'Score':>8}")
     print(f"  {'-'*30} {'-'*8}")
     for uid, score in sorted(user_scores.items()):

@@ -289,7 +289,7 @@ async def main():
     save_dir = config.scenes_dir()
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    console.print(f"\n[bold cyan]" + "=" * 80 + "[/bold cyan]")
+    console.print("\n[bold cyan]" + "=" * 80 + "[/bold cyan]")
     console.print("[bold cyan]Stage 1: Memory Extraction (Scene Boundary Detection)[/bold cyan]")
     console.print("[bold cyan]" + "=" * 80 + "[/bold cyan]\n")
 
@@ -368,7 +368,6 @@ async def main():
         import os as _os
         _s1c = int(
             _os.environ.get("T_MEM_MAX_CONCURRENCY", "")
-            or _os.environ.get("T_MEM_VENUS_MAX_WORKERS", "")
             or 14
         )
         stage1_sem = asyncio.Semaphore(max(1, _s1c))

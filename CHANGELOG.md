@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `pyproject.toml` — the package is now installable via `pip install -e .`.
 - `scripts/download_data.sh` — one-command download of the LoCoMo / LoCoMo-Plus
-  / LongMemEval public datasets.
+  public datasets.
 - `.env.example` — documented environment-variable template.
 - `tests/` — unit tests for types, datetime utilities, cost ledger, LLM
   provider (JSON parsing / retry wiring / ledger hooks), trigger index, and
@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Two-layer memory extraction pipeline (scenes -> topics -> memory items) with
   a retrieval graph and trigger recall.
-- Benchmark evaluation harness for LoCoMo, LoCoMo-Plus and LongMemEval.
+- Benchmark evaluation harness for LoCoMo and LoCoMo-Plus.
 - Documentation and project page for the paper
   *T-Mem: Memory That Anticipates, Not Archives*
   ([arXiv:2606.15405](https://arxiv.org/abs/2606.15405)).

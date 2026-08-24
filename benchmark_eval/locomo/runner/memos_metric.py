@@ -3,7 +3,6 @@ Computes overall / per-category / per-user LLM-judge scores + lexical F1/BLEU1-4
 
 import argparse
 import json
-import os
 
 import numpy as np
 
@@ -170,7 +169,7 @@ def main():
         print(f"  Overall BLEU1: {lexical.get('bleu1', 0):.4f}")
     print(f"  Total questions evaluated: {results['total_questions']}")
 
-    print(f"\n  By Category:")
+    print("\n  By Category:")
     print(f"  {'Category':<25} {'Judge':>8} {'F1':>8} {'BLEU1':>8} {'Count':>8}")
     print(f"  {'-'*25} {'-'*8} {'-'*8} {'-'*8} {'-'*8}")
     for cat_key in sorted(results["category_scores"].keys(), key=lambda x: int(x)):
@@ -178,7 +177,7 @@ def main():
         cat_lex = cat.get('lexical', {})
         print(f"  {cat['category_name']:<25} {cat['llm_judge_score']:>8.4f} {cat_lex.get('f1', 0):>8.4f} {cat_lex.get('bleu1', 0):>8.4f} {cat['total']:>8}")
 
-    print(f"\n  By User:")
+    print("\n  By User:")
     print(f"  {'User':<30} {'Score':>10} {'Count':>8}")
     print(f"  {'-'*30} {'-'*10} {'-'*8}")
     for uid in sorted(results["user_scores"].keys()):

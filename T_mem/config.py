@@ -16,7 +16,7 @@ RESULTS_DIR = Path(_RESULTS_DIR_OVERRIDE).resolve() if _RESULTS_DIR_OVERRIDE els
 # model names exactly as they must exist on the OpenAI-compatible endpoint
 # configured via T_MEM_LLM_BASE_URL (e.g. OpenAI, vLLM, SiliconFlow, ...).
 MODELS: dict = {
-    "memory_build":      "gpt-4o-mini",
+    "memory_build":      "gpt-4.1-mini",
     "locomo_qa":         "gpt-4o-mini",
     "locomo_judge":      "gpt-4o-mini",
     "locomo_plus_qa":    "gpt-4o",

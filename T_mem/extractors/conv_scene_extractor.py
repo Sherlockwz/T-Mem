@@ -6,7 +6,6 @@ from datetime import datetime
 from dataclasses import dataclass
 import uuid
 import json
-import re
 import asyncio
 
 try:

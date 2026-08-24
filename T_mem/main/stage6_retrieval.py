@@ -14,8 +14,8 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from rich.progress import (
-    Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn,
-    TimeElapsedColumn, TimeRemainingColumn, MofNCompleteColumn
+    Progress, SpinnerColumn, TextColumn, BarColumn,
+    TimeElapsedColumn, TimeRemainingColumn
 )
 from rich.console import Console
 
@@ -490,13 +490,12 @@ def hierarchical_retrieval(
     initial_candidates = config.retrieval_config["initial_candidates"]
     # === Layer 1: Retrieve relevant topics ===
 
-    print(f"  [Layer 1] Retrieving relevant topics...")
+    print("  [Layer 1] Retrieving relevant topics...")
     retrieve_top_n = initial_candidates if config.use_reranker else topic_top_k
     
     # Select retrieval method based on retrieval type: keyword (BM25 only), vector (vector only), rrf (fusion)
     retrieval_type = getattr(config, 'retrieval_type', 'rrf').lower()
     use_emb = retrieval_type in ('vector', 'rrf')
-    use_bm25 = retrieval_type in ('keyword', 'rrf')
     use_rrf = retrieval_type == 'rrf'
 
     retrieval_log["config"] = {
@@ -613,7 +612,7 @@ def hierarchical_retrieval(
     #  code left over from an abandoned optimization. Removed so Layer 2+3
     #  always run, which is the intended behavior post-dismantle.)
 
-    print(f"  [Layer 2] Retrieving scenes from relevant topics...")
+    print("  [Layer 2] Retrieving scenes from relevant topics...")
     connected_scenes = get_connected_scenes(relevant_topic_ids, memory_graph)
     print(f"    Found {len(connected_scenes)} scenes via graph-edge connections")
     retrieval_log["layer2_scene"]["connected_count"] = len(connected_scenes)
@@ -767,7 +766,7 @@ def hierarchical_retrieval(
 
     # === Layer 3: Get connected items from relevant scenes ===
 
-    print(f"  [Layer 3] Retrieving items from relevant scenes...")
+    print("  [Layer 3] Retrieving items from relevant scenes...")
     connected_items = get_connected_items(relevant_scene_ids, memory_graph)
     # A5 ablation: expand connected_items to the full item set of this
     # sample, so Layer 3 performs a flat retrieval over all items.
@@ -1339,7 +1338,7 @@ async def main():
             conv_id_str, results_for_conv = result
             
             # Ensure progress bar is completed
-            progress.update(task_id, completed=query_count, status=f"[green]Done[/green]")
+            progress.update(task_id, completed=query_count, status="[green]Done[/green]")
             
             return result
     
@@ -1387,7 +1386,7 @@ async def main():
             console.print(f"[red][X] Processing exception: {result}[/red]")
 
     # === Save all results ===
-    console.print(f"\n[bold cyan]" + "="*80 + "[/bold cyan]")
+    console.print("\n[bold cyan]" + "="*80 + "[/bold cyan]")
     console.print(f"[bold]Saving retrieval results to:[/bold] {results_output_path}")
     with open(results_output_path, "w", encoding="utf-8") as f:
         json.dump(all_search_results, f, indent=2, ensure_ascii=False)
@@ -1404,7 +1403,7 @@ async def main():
         json.dump(all_logs, f, indent=2, ensure_ascii=False)
     console.print(f"[bold]Saving retrieval logs to:[/bold] {retrieval_logs_path}")
 
-    console.print(f"[bold green][SUCCESS] Memory-graph hierarchical retrieval completed![/bold green]")
+    console.print("[bold green][SUCCESS] Memory-graph hierarchical retrieval completed![/bold green]")
     console.print("[bold cyan]" + "="*80 + "[/bold cyan]\n")
 
 

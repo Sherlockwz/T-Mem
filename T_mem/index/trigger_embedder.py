@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from .trigger_index import EntityBridgeTrigger, TriggerGraph
+from .trigger_index import TriggerGraph
 
 
 def embed_trigger_graph_triview(

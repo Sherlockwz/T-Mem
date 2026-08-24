@@ -25,8 +25,8 @@ PERSONA_EXTRACT_TIMEOUT = int(os.environ.get("T_MEM_PERSONA_TIMEOUT", "300"))
 PROFILE_DEBUG = os.environ.get("T_MEM_PROFILE_DEBUG", "0") == "1"
 
 # R1 main trigger: buffer >= THIS utterances -> LLM extract + clear buffer.
-PERSONA_BUFFER_THRESHOLD = 16
+PERSONA_BUFFER_THRESHOLD = 60
 
 # R3 big-scene pre-intercept: incoming scene with >= THIS utterances -> flush
 # any pending buffer (terminal), then extract this big scene alone (also terminal).
-PERSONA_BIG_SCENE_THRESHOLD = 28
+PERSONA_BIG_SCENE_THRESHOLD = 70

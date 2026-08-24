@@ -251,7 +251,6 @@ class LLMProvider:
         try:
             _mw_env = int(
                 os.environ.get("T_MEM_MAX_CONCURRENCY")
-                or os.environ.get("T_MEM_VENUS_MAX_WORKERS")
                 or str(max_workers)
             )
             if _mw_env > 0:

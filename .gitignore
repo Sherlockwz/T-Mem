@@ -30,6 +30,11 @@ Thumbs.db
 results/
 data/
 
+# But keep the LoCoMo-Plus conversation-build scripts (code, not data)
+!benchmark_eval/locomo_plus/data/
+!benchmark_eval/locomo_plus/data/build_conv.py
+!benchmark_eval/locomo_plus/data/unified_input.py
+
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb

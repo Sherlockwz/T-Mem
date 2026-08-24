@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Persona-augmentation helpers for the merged-context QA prompt.
-Env knobs (all default OFF): T_MEM_MEMORY_TOPK / T_MEM_PERSONA_STORE_ROOT / T_MEM_DUMP_CONTEXTS.
+Env knob: T_MEM_PERSONA_STORE_ROOT (default OFF).
 Importing this module has no side effects."""
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import re
-import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -17,69 +16,6 @@ _logger = logging.getLogger("T_mem.persona.qa_support")
 
 PROFILE_TA_ALLOWED_KEYS: Tuple[str, ...] = ("personality", "values", "attitudes", "beliefs")
 PROFILE_AGGREGATION_MIN_COUNT: int = 3
-
-
-_MEMORY_CELLS_HEADER_RE = re.compile(
-    r"^\s*##\s*Relevant\s*Memory\s*Cells\s*:\s*\n", re.MULTILINE
-)
-_ANY_SECTION_HEADER_RE = re.compile(r"^\s*##\s+", re.MULTILINE)
-# CRITICAL: no `\b` after `]` — `]` is non-word so `\b` would silently kill all matches.
-_MEMORY_BLOCK_RE = re.compile(r"^\[Memory\s+(\d+)\]", re.MULTILINE)
-
-
-def truncate_memory_cells_block(ctx: str, top_k: int) -> Tuple[str, Dict[str, Any]]:
-    """Keep first top_k [Memory N] blocks under '## Relevant Memory Cells:' (top_k<0 = no-op)."""
-    diag: Dict[str, Any] = {
-        "section_present": False,
-        "n_blocks_before": 0,
-        "n_blocks_kept": 0,
-        "n_blocks_dropped": 0,
-        "top_k_requested": int(top_k),
-        "no_op": False,
-    }
-
-    if top_k is None or top_k < 0:
-        diag["no_op"] = True
-        return ctx, diag
-
-    hdr = _MEMORY_CELLS_HEADER_RE.search(ctx)
-    if hdr is None:
-        diag["no_op"] = True
-        return ctx, diag
-
-    diag["section_present"] = True
-    section_body_start = hdr.end()
-
-    tail = ctx[section_body_start:]
-    next_sec = _ANY_SECTION_HEADER_RE.search(tail)
-    if next_sec is None:
-        section_body_end = len(ctx)
-    else:
-        section_body_end = section_body_start + next_sec.start()
-
-    body = ctx[section_body_start:section_body_end]
-    matches = list(_MEMORY_BLOCK_RE.finditer(body))
-    diag["n_blocks_before"] = len(matches)
-
-    if not matches:
-        return ctx, diag
-
-    if top_k >= len(matches):
-        diag["n_blocks_kept"] = len(matches)
-        return ctx, diag
-
-    keep_end_in_body = matches[top_k].start() if top_k > 0 else 0
-    kept_body = body[: keep_end_in_body].rstrip()
-
-    new_ctx = (
-        ctx[: section_body_start]
-        + kept_body
-        + ("\n\n" if kept_body else "\n")
-        + ctx[section_body_end:]
-    )
-    diag["n_blocks_kept"] = top_k
-    diag["n_blocks_dropped"] = len(matches) - top_k
-    return new_ctx, diag
 
 
 def _norm_str(s: Any) -> str:
@@ -382,44 +318,6 @@ def append_persona_section(ctx: str, persona_md: str) -> str:
     return left + "\n\n" + persona_md.strip() + "\n"
 
 
-_DUMP_PATH: Optional[Path] = None
-_DUMP_LOCK = threading.Lock()
-
-
-def configure_context_dump(path: Optional[Path]) -> None:
-    """Call once from the driver before any context is built; path=None disables dumping."""
-    global _DUMP_PATH
-    _DUMP_PATH = path
-    if path is not None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("", encoding="utf-8")
-
-
-def dump_context_record(record: Dict[str, Any]) -> None:
-    """Append one JSON line to the configured dump path; no-op when disabled."""
-    if _DUMP_PATH is None:
-        return
-    line = json.dumps(record, ensure_ascii=False)
-    with _DUMP_LOCK:
-        with _DUMP_PATH.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
-
-
-def parse_memory_topk_env() -> Optional[int]:
-    raw = os.environ.get("T_MEM_MEMORY_TOPK", "").strip()
-    if not raw:
-        return None
-    try:
-        v = int(raw)
-    except ValueError:
-        _logger.warning("[persona] ignoring bad T_MEM_MEMORY_TOPK=%r", raw)
-        return None
-    if v < 0:
-        _logger.warning("[persona] ignoring negative T_MEM_MEMORY_TOPK=%d", v)
-        return None
-    return v
-
-
 def parse_persona_store_root_env() -> Optional[Path]:
     raw = os.environ.get("T_MEM_PERSONA_STORE_ROOT", "").strip()
     if not raw:
@@ -429,8 +327,3 @@ def parse_persona_store_root_env() -> Optional[Path]:
         _logger.warning("[persona] T_MEM_PERSONA_STORE_ROOT=%s not a directory", p)
         return None
     return p
-
-
-def parse_dump_contexts_enabled_env() -> bool:
-    raw = os.environ.get("T_MEM_DUMP_CONTEXTS", "").strip().lower()
-    return raw in ("1", "true", "yes", "on")

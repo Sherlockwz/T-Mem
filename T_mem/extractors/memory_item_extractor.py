@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 

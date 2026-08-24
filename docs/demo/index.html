@@ -343,8 +343,7 @@ export T_MEM_LLM_API_KEY="sk-..."
         <h3>Add the benchmark data</h3>
         <p>Datasets aren't redistributed here. Drop them under <span class="mono">benchmark_eval/</span>:</p>
         <pre>benchmark_eval/locomo/data/locomo10.json
-benchmark_eval/locomo_plus/data/locomo_plus.json
-benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json</pre>
+benchmark_eval/locomo_plus/data/locomo_plus.json</pre>
       </div>
       <div class="rstep">
         <h3>Build the memory graph</h3>
@@ -358,7 +357,7 @@ benchmark_eval/longmemeval/data/longmemeval_s_cleaned.json</pre>
         <p class="rl-foot">Outputs land in <span class="path">results/&lt;experiment_dir&gt;/</span> — <span class="mono">responses.json</span> plus per-conversation scenes, items, and triggers, exactly the artifacts this explorer renders.</p>
       </div>
     </div>
-    <p class="rl-foot" style="margin-top:18px">Swap <span class="mono">--mode locomo</span> for <span class="mono">locomo_plus</span> or <span class="mono">lme</span> to run the other benchmarks. Full options are in the <a href="https://github.com/Sherlockwz/T-Mem" style="color:var(--assoc-a)">repository README</a>.</p>`;
+    <p class="rl-foot" style="margin-top:18px">Swap <span class="mono">--mode locomo</span> for <span class="mono">locomo_plus</span> to run the other benchmark. Full options are in the <a href="https://github.com/Sherlockwz/T-Mem" style="color:var(--assoc-a)">repository README</a>.</p>`;
 }
 
 fetch("demo_data.json").then(r=>r.json()).then(d=>{

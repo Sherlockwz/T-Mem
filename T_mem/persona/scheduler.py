@@ -6,11 +6,9 @@ R2: at end-of-conv with non-empty buffer, rollback to last "standard" snapshot +
 from __future__ import annotations
 
 import copy
-import json
 import logging
-import os
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 from T_mem.persona.common import (
     PERSONA_BUFFER_THRESHOLD,

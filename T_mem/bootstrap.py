@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from pathlib import Path
 
 _logger = logging.getLogger("T_mem.bootstrap")
@@ -70,12 +69,3 @@ def patch_providers():
         failure_logger = JsonFailureLogger(log_path)
         set_global_failure_logger(failure_logger)
         _logger.info("[bootstrap] JSON failure logger -> %s", log_path)
-
-
-def ensure_on_path():
-    """Ensure the T_mem package is importable."""
-    here = Path(__file__).resolve()
-    t_mem_parent = here.parent.parent
-    p = str(t_mem_parent)
-    if p not in sys.path:
-        sys.path.insert(0, p)
