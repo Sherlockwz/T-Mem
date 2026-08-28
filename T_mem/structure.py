@@ -1,6 +1,5 @@
 """Two-layer graph structure: L1 MemoryItemNode / L2 SceneNode / L3 TopicNode."""
 
-import numpy as np
 from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -34,29 +33,6 @@ class MemoryItemNode(BaseModel):
             query_patterns=item.query_patterns or [],
             timestamp=item.timestamp,
         )
-
-    def to_item(self) -> MemoryItem:
-        return MemoryItem(
-            item_id=self.id,
-            content=self.content,
-            scene_ids=self.scene_ids,
-            topic_id=self.topic_id,
-            temporal=self.temporal,
-            spatial=self.spatial,
-            keywords=self.keywords,
-            query_patterns=self.query_patterns,
-            timestamp=self.timestamp
-        )
-
-    def to_text(self) -> str:
-        parts = [self.content]
-        if self.temporal:
-            parts.append(f"Time: {self.temporal}")
-        if self.spatial:
-            parts.append(f"Location: {self.spatial}")
-        if len(parts) > 1:
-            return f"{parts[0]} ({'; '.join(parts[1:])})"
-        return self.content
 
 
 class SceneNode(BaseModel):
@@ -93,20 +69,6 @@ class SceneNode(BaseModel):
             subject=scene.subject,
             scene_description=scene.scene_description,
             item_ids=item_ids or [],
-        )
-
-    def to_scene(self) -> Scene:
-        return Scene(
-            scene_id=self.id,
-            user_id_list=self.user_id_list,
-            original_data=self.original_data,
-            timestamp=self.timestamp if self.timestamp else datetime.now(),
-            summary=self.summary if self.summary else "",
-            participants=self.participants,
-            type=self.type,
-            keywords=self.keywords,
-            subject=self.subject,
-            scene_description=self.scene_description
         )
 
 
@@ -175,111 +137,3 @@ class MemoryGraph(BaseModel):
             'scenes': len(self.scenes),
             'topics': len(self.topics)
         }
-
-    def add_node(self, layer: str, node_id: str, **kwargs):
-        if layer == "item":
-            self.items[node_id] = MemoryItemNode(
-                id=node_id,
-                content=kwargs.get("content", ""),
-                scene_ids=kwargs.get("scene_ids", []),
-                topic_id=kwargs.get("topic_id", ""),
-                temporal=kwargs.get("temporal"),
-                spatial=kwargs.get("spatial"),
-                keywords=kwargs.get("keywords", []),
-                query_patterns=kwargs.get("query_patterns", []),
-                timestamp=kwargs.get("timestamp"),
-            )
-
-        elif layer == "scene":
-            self.scenes[node_id] = SceneNode(
-                id=node_id,
-                user_id_list=kwargs.get("user_id_list", []),
-                original_data=kwargs.get("original_data", []),
-                timestamp=kwargs.get("timestamp", None),
-                summary=kwargs.get("summary", ""),
-                participants=kwargs.get("participants", None),
-                type=kwargs.get("type", None),
-                keywords=kwargs.get("keywords", None),
-                subject=kwargs.get("subject", None),
-                scene_description=kwargs.get("scene_description", None),
-                item_ids=kwargs.get("item_ids", []),
-            )
-
-        elif layer == "topic":
-            self.topics[node_id] = TopicNode(
-                id=node_id,
-                summary=kwargs.get("summary", ""),
-                scene_ids=kwargs.get("scene_ids", []),
-                timestamp=kwargs.get("timestamp", None),
-                user_id_list=kwargs.get("user_id_list", []),
-                participants=kwargs.get("participants", None),
-            )
-
-        else:
-            raise ValueError(f"Invalid layer: {layer}. Must be 'item', 'scene', or 'topic'")
-
-    def get_node(self, layer: str, node_id: str) -> Dict[str, Any]:
-        if layer == "item":
-            node = self.items.get(node_id)
-            return node.model_dump() if node else {}
-        elif layer == "scene":
-            node = self.scenes.get(node_id)
-            return node.model_dump() if node else {}
-        elif layer == "topic":
-            node = self.topics.get(node_id)
-            return node.model_dump() if node else {}
-        else:
-            raise ValueError(f"Invalid layer: {layer}. Must be 'item', 'scene', or 'topic'")
-
-
-class MemoryGraphEmbedding(BaseModel):
-    """Three-layer node embedding container."""
-    model_config = {"arbitrary_types_allowed": True}
-
-    items: Dict[str, np.ndarray] = Field(default_factory=dict)
-    scenes: Dict[str, np.ndarray] = Field(default_factory=dict)
-    topics: Dict[str, np.ndarray] = Field(default_factory=dict)
-
-    def get_stats(self) -> Dict[str, int]:
-        return {
-            'items': len(self.items),
-            'scenes': len(self.scenes),
-            'topics': len(self.topics)
-        }
-
-    def to_dict(self) -> Dict[str, Any]:
-        def convert_numpy(obj):
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, dict):
-                return {k: convert_numpy(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_numpy(item) for item in obj]
-            else:
-                return obj
-
-        return convert_numpy({
-            'items': self.items,
-            'scenes': self.scenes,
-            'topics': self.topics
-        })
-
-    def add_embedding(self, layer: str, node_id: str, embedding: np.ndarray):
-        if layer == "item":
-            self.items[node_id] = embedding
-        elif layer == "scene":
-            self.scenes[node_id] = embedding
-        elif layer == "topic":
-            self.topics[node_id] = embedding
-        else:
-            raise ValueError(f"Invalid layer: {layer}. Must be 'item', 'scene', or 'topic'")
-
-    def get_embedding(self, layer: str, node_id: str) -> np.ndarray:
-        if layer == "item":
-            return self.items.get(node_id, np.array([]))
-        elif layer == "scene":
-            return self.scenes.get(node_id, np.array([]))
-        elif layer == "topic":
-            return self.topics.get(node_id, np.array([]))
-        else:
-            raise ValueError(f"Invalid layer: {layer}. Must be 'item', 'scene', or 'topic'")

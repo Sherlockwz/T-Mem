@@ -1088,7 +1088,6 @@ def process_single_conversation_retrieval(
     conversation_data: Dict[str, Any],
     config: ExperimentConfig,
     memory_graph_dir: Path,
-    index_dir: Path,
     embedding_provider: Optional[EmbeddingProvider],
     reranker_provider: Optional[RerankerProvider],
     progress_callback: Optional[callable] = None
@@ -1251,9 +1250,6 @@ async def main():
     }.get(retrieval_type, f'[red]Unknown mode: {retrieval_type}[/red]')
     console.print(f"[bold]Retrieval mode:[/bold] {retrieval_mode_display}")
     
-    # Index directory
-    index_dir = config.vectors_dir()
-
     # Memory graph data directory
     memory_graph_dir = config.memory_graph_dir()
 
@@ -1329,7 +1325,6 @@ async def main():
                 conversation_data,
                 config,
                 memory_graph_dir,
-                index_dir,
                 embedding_provider,
                 reranker_provider,
                 progress_callback

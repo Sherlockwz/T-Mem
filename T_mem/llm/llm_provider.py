@@ -234,7 +234,6 @@ class LLMProvider:
 
     def __init__(
         self,
-        provider_type: str = "openai",
         model: Optional[str] = None,
         timeout: int = 420,
         retries: int = 4,
@@ -288,7 +287,6 @@ class LLMProvider:
         self,
         prompt: str,
         temperature: float | None = None,
-        extra_body: dict | None = None,
         response_format: dict | None = None,
         **kwargs,
     ) -> str:
@@ -428,10 +426,13 @@ class LLMProvider:
 
     def _log_failure(self, conv_id, call_site, attempt_count, last_error,
                      prompt, raw_response):
-        if self.failure_logger is None:
+        # Prefer a per-instance logger; otherwise fall back to the process-wide
+        # one installed by bootstrap.patch_providers() when T_MEM_FAILURE_LOG is set.
+        logger_obj = self.failure_logger or get_global_failure_logger()
+        if logger_obj is None:
             return
         try:
-            self.failure_logger.log(
+            logger_obj.log(
                 conv_id=conv_id,
                 call_site=call_site,
                 attempt_count=attempt_count,

@@ -118,7 +118,6 @@ def judge_one(
 def _write_metrics(
     out_dir: Path,
     judged: dict[str, Any],
-    rt_map: dict[str, str],
 ) -> dict[str, Any]:
     details = judged["details"]
     total = len(details)
@@ -195,7 +194,7 @@ def run_one(
             )
             if same:
                 log.info("[skip] judge.json already matches; rewriting metrics only")
-                return _write_metrics(out_dir, old, rt_map)
+                return _write_metrics(out_dir, old)
         except Exception:
             pass
 
@@ -275,7 +274,7 @@ def run_one(
         encoding="utf-8",
     )
     log.info("-> %s", judge_path)
-    return _write_metrics(out_dir, judged, rt_map)
+    return _write_metrics(out_dir, judged)
 
 
 def _model_slug(model: str) -> str:

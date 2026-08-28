@@ -99,8 +99,6 @@ def scene_to_dialogue(sc: dict) -> str:
 async def extract_one_scene(
     llm: LLMProvider,
     sem: asyncio.Semaphore,
-    conv_id: str,
-    scene_id: str,
     dialogue: str,
 ) -> dict:
     prompt = build_prompt("A", dialogue)
@@ -210,8 +208,8 @@ async def process_conv(
     if to_run:
         sem = asyncio.Semaphore(concurrency)
         tasks = [
-            extract_one_scene(llm, sem, conv_tag, sid, dlg)
-            for sid, dlg in to_run
+            extract_one_scene(llm, sem, dlg)
+            for _sid, dlg in to_run
         ]
         t0 = time.perf_counter()
         results = await asyncio.gather(*tasks, return_exceptions=False)

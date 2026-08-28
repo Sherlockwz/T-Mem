@@ -245,7 +245,7 @@ async def _amain(args: argparse.Namespace) -> None:
     last_report = time.time()
     report_every = 20
 
-    async def _process(user_key: str, idx: int, record: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    async def _process(user_key: str, record: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         nonlocal done_counter, last_report
         conv_id = _conv_id_from_user_key(user_key)
         resp = await _answer_record(
@@ -275,11 +275,11 @@ async def _amain(args: argparse.Namespace) -> None:
             continue
         seen = already.get(user_key, set())
         responses_out.setdefault(user_key, [])
-        for idx, record in enumerate(records):
+        for record in records:
             q = (record.get("query") or "").strip()
             if q and q in seen:
                 continue  # already answered in a previous run
-            tasks.append(asyncio.create_task(_process(user_key, idx, record)))
+            tasks.append(asyncio.create_task(_process(user_key, record)))
 
     _logger.info("[stage8] scheduling %d tasks", len(tasks))
 

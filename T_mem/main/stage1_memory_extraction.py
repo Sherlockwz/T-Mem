@@ -302,7 +302,6 @@ async def main():
     console.print(f"   Model: {config.llm_config[llm_service]['model']}", style="dim")
 
     shared_llm_provider = LLMProvider(
-        provider_type="openai",
         model=config.llm_config[llm_service]["model"],
         temperature=config.llm_config[llm_service]["temperature"],
         max_tokens=config.llm_config[llm_service]["max_tokens"],

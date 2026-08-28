@@ -93,16 +93,6 @@ class MemoryItem:
             "timestamp": to_iso_format(self.timestamp) if self.timestamp else None
         }
 
-    def to_text(self) -> str:
-        parts = [self.content]
-        if self.temporal:
-            parts.append(f"Time: {self.temporal}")
-        if self.spatial:
-            parts.append(f"Location: {self.spatial}")
-        if len(parts) > 1:
-            return f"{parts[0]} ({'; '.join(parts[1:])})"
-        return self.content
-
 
 @dataclass
 class Topic:

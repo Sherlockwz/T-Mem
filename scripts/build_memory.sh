@@ -3,22 +3,29 @@
 # T_mem · Memory-library build script (single entry point).
 #
 # Two modes share this one script:
-#   --mode locomo       (default)  → 10-conv main library; stages 1..7
+#   --mode locomo       (default)  → 10-conv main library; stages 1..7 (+4b)
 #                                    used by scripts/eval_locomo.sh
-#   --mode locomo_plus              → 401-conv per-sample libraries; stages 1..4
+#   --mode locomo_plus              → 401-conv per-sample libraries; stages 1..4 (+4b)
 #                                    (each plus sample stitches its cue into
 #                                    base_conv (i % 10) at last_session+7d, then
 #                                    runs stages on the 401-conv stitched json).
 #                                    used by scripts/eval_locomo_plus.sh
 #
+# Stage 4 vs 4b — two independent trigger families:
+#   stage 4  Scene/Horizon triggers  (scenes/ -> scene_horizon_triggers/), read by stage 5
+#            toggle: T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS
+#   stage 4b Entity/Bridge triggers  (memory_graphs/ -> entity_bridge_triggers/), read by stage 6
+#            toggle: T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED  (governs build AND retrieval)
+#
 # Usage:
 #   # locomo (default) – behaviour identical to the previous build_memory.sh:
 #   bash scripts/build_memory.sh [--tag <name>] [--stages 1,2,3,...]
 #   T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS=0 bash scripts/build_memory.sh   # skip stages 4/5
+#   T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED=0 bash scripts/build_memory.sh   # skip stage 4b
 #
-#   # locomo_plus – stitch + per-sample stages 1..4:
+#   # locomo_plus – stitch + per-sample stages 1..4 (+4b):
 #   bash scripts/build_memory.sh --mode locomo_plus [--tag <name>] [--limit N] \
-#        [--stages 1,2,3,4] [--locomo-plus-file <abs>]
+#        [--stages 1,2,3,4,4b] [--locomo-plus-file <abs>]
 #
 # Smoke (25-sample plus) example:
 #   bash scripts/build_memory.sh --mode locomo_plus --tag smoke25 --limit 25
@@ -60,7 +67,7 @@ while [[ $# -gt 0 ]]; do
         --out-dir)          OUT_DIR_OVERRIDE="$2"; shift 2;;
         --limit)            LIMIT="$2";            shift 2;;
         -h|--help)
-            sed -n '2,31p' "$0"
+            sed -n '2,37p' "$0"
             exit 0;;
         *)
             echo "[build_memory] unknown arg: $1" >&2
@@ -73,26 +80,41 @@ case "$MODE" in
     *) echo "[build_memory] FATAL: --mode must be locomo|locomo_plus, got: $MODE" >&2; exit 2;;
 esac
 
+# ---------------- Feature switches ----------------
+# Mirrors T_mem/main/stage6_retrieval.py::_is_entity_bridge_trigger_enabled():
+# default ON, only an explicit opt-out disables the feature. Keeping the two in
+# sync means one variable governs BOTH the build (stage 4b) and the consumption
+# (stage 6) of entity/bridge triggers.
+entity_bridge_disabled() {
+    local raw
+    raw="$(printf '%s' "${T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+    case "$raw" in
+        0|false|no|off) return 0;;
+        *)              return 1;;
+    esac
+}
+
 # ---------------- Mode-specific defaults ----------------
 if [[ -z "$STAGES" ]]; then
     if [[ "$MODE" == "locomo" ]]; then
-        # Mirror the original (pre-merge) build_memory.sh defaults exactly so
-        # `--mode locomo` keeps byte-for-byte legacy behaviour.
-if [[ "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "0" || \
-     "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "false" || \
-     "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "no" || \
-     "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "off" ]]; then
-            STAGES="1,2,3,6,7"
+        # Stage 4b (entity/bridge triggers) is independent of the Scene/Horizon
+        # switch: stage 6 consumes it, so it belongs in every locomo default.
+        if [[ "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "0" || \
+              "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "false" || \
+              "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "no" || \
+              "${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-}" == "off" ]]; then
+            STAGES="1,2,3,4b,6,7"
         else
-            STAGES="1,2,3,4,5,6,7"
+            STAGES="1,2,3,4,4b,5,6,7"
         fi
     elif [[ "$MODE" == "locomo_plus" ]]; then
         # locomo_plus eval consumes only scenes/ + scene_horizon_triggers/, so stage5
         # (per-QA top-K), stage6 (retrieval), stage7 (persona) are irrelevant.
         # We still default to "1,2,3,4" -- not the leaner "1,4" -- because
         # stage 2/3 outputs (items + indexes) are cheap insurance against
-        # later analysis steps that may want them.
-        STAGES="1,2,3,4"
+        # later analysis steps that may want them. 4b is included so a plus
+        # library can also be reused for entity/bridge analysis.
+        STAGES="1,2,3,4,4b"
     fi
 fi
 
@@ -194,7 +216,12 @@ echo "  Experiment:  $EXP_DIR"
 echo "  Tag:         ${TAG:-<none>}"
 echo "  Dataset:     $LOCOMO_FILE"
 echo "  Stages:      $STAGES"
-  echo "  Scene/Horizon assoc:  ${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-on}"
+echo "  Scene/Horizon assoc:  ${T_MEM_ENABLE_SCENE_HORIZON_TRIGGERS:-on}"
+if entity_bridge_disabled; then
+    echo "  Entity/Bridge assoc:  off"
+else
+    echo "  Entity/Bridge assoc:  on"
+fi
 echo "  Failure log: $JSON_FAILURE_LOG"
 echo "  Model ids:   T_mem/config.py :: MODELS (single source of truth)"
 echo "============================================================"
@@ -224,7 +251,34 @@ for s in "${STAGE_ARR[@]}"; do
         2)   run_stage "2 (memory-graph extraction)" "T_mem.main.stage2_extraction";;
         3)   run_stage "3 (index building)"          "T_mem.main.stage3_index";;
         4)   run_stage "4 (Scene/Horizon trigger extract)" "T_mem.main.stage4_associative_extract";;
+        4b)
+            # Entity/Bridge triggers: built from the stage-2 memory graphs and
+            # consumed by stage 6 through T_mem.retrievers.trigger_recaller.
+            # Without this stage stage 6 only logs a warning and silently falls
+            # back to baseline retrieval, so keep it in the default stage list.
+            if entity_bridge_disabled; then
+                echo "" | tee -a "$LOG_FILE"
+                echo "[build_memory] Stage 4b skipped (T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED=${T_MEM_ENTITY_BRIDGE_TRIGGER_ENABLED})" | tee -a "$LOG_FILE"
+            else
+                if [[ ! -d "$EXP_DIR/memory_graphs" ]]; then
+                    echo "[build_memory] stage 4b (Entity/Bridge trigger build) requires $EXP_DIR/memory_graphs (stage 2 output); run stage 2 first" >&2
+                    exit 2
+                fi
+                run_stage "4b (Entity/Bridge trigger build)" "T_mem.main.build_trigger" \
+                    --memory-dir "$EXP_DIR" \
+                    --output-dir "$EXP_DIR/entity_bridge_triggers"
+            fi
+            ;;
         5)
+            # stage5_retrieval_locomo is LoCoMo-specific. LoCoMo-Plus builds its
+            # per-sample top-K inside scripts/eval_locomo_plus.sh (which runs
+            # stage5_retrieval_locomo_plus), so refuse instead of silently
+            # running the wrong module.
+            if [[ "$MODE" != "locomo" ]]; then
+                echo "[build_memory] stage 5 is only valid for --mode locomo (got: $MODE)." >&2
+                echo "[build_memory] For LoCoMo-Plus run: bash scripts/eval_locomo_plus.sh --resume $EXP_DIR" >&2
+                exit 2
+            fi
             run_stage "5 (per-QA top-K build)"     "T_mem.main.stage5_retrieval_locomo"
             if [[ -f "$EXP_DIR/scene_horizon_topk_per_qa.json" ]]; then
                 export SCENE_HORIZON_ASSOC_TOPK_JSON="$EXP_DIR/scene_horizon_topk_per_qa.json"

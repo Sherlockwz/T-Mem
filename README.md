@@ -193,6 +193,7 @@ bash scripts/eval_locomo_plus.sh --resume results/<experiment_dir>
 | 2     | Memory Graph Extraction       | scenes                   | `memory_graph_conv_*.json`, `items_conv_*.json` |
 | 3     | Index Building                | memory graphs            | BM25 `.pkl` + vector `.pkl` per conv            |
 | 4     | Scene/Horizon Trigger Extraction      | scenes                   | `triggers_conv_*.json`                          |
+| 4b    | Entity/Bridge Trigger Build   | memory graphs            | `entity_bridge_graph_conv_*.json` + `.npz`      |
 | 5     | Per-QA Top-K (RRF Fusion)     | scenes + triggers        | `scene_horizon_topk_per_qa.json`                         |
 | 6     | Hierarchical Retrieval        | all indexes + top-K      | `search_results.json`                           |
 | 7     | Persona Extraction (optional) | scenes                   | `personas/`                                     |
@@ -227,16 +228,17 @@ T-Mem/
 │   ├── index/            # BM25 / vector / Entity&Bridge & Scene&Horizon trigger index builders
 │   ├── io/               # predictions adapter + search-result truncator
 │   ├── llm/              # OpenAI-compatible LLM / Embedding / Reranker providers
-│   ├── main/             # Pipeline stages (stage0–stage8)
+│   ├── main/             # Pipeline stages (stage0–stage8; build_trigger = 4b)
 │   ├── persona/          # Persona profile extraction & QA support
 │   ├── prompts/          # LLM prompt templates
 │   ├── retrievers/       # Entity/Bridge trigger recaller
-│   └── utils/            # datetime helpers + logger
+│   └── utils/            # datetime helpers + logger + cost ledger
 ├── benchmark_eval/
 │   ├── locomo/           # LoCoMo judge + format converter
 │   └── locomo_plus/      # LoCoMo-Plus judge + data scripts
 ├── scripts/
 │   ├── build_memory.sh   # Single entry point for both modes
+│   ├── download_data.sh  # Fetch LoCoMo / LoCoMo-Plus datasets
 │   ├── eval_locomo.sh
 │   └── eval_locomo_plus.sh
 ├── assets/               # paper figures

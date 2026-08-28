@@ -28,8 +28,10 @@ from T_mem.config import MODELS  # noqa: E402
 
 _logger = logging.getLogger("T_mem.evaluation.stage8_qa_locomo_plus")
 
-# CRITICAL: matches scene_horizon_triggers/qa_judge/prompts.py::QA_COGNITIVE_WITH_CUE_PROMPT
-# verbatim (same whitespace, same placeholders). Do NOT reformat.
+# Canonical LoCoMo-Plus answer prompt. The judge in
+# benchmark_eval/locomo_plus/judge/ scores responses produced by this exact
+# wording, so keep the whitespace and the {speaker_a}/{speaker_b}/
+# {memory_context}/{trigger} placeholders unchanged. Do NOT reformat.
 QA_COGNITIVE_WITH_CUE_PROMPT = """You are continuing a conversation between {speaker_a} and {speaker_b}.
 
 {memory_context}

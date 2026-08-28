@@ -42,40 +42,6 @@ _NEXT_SECTION_RE  = re.compile(r"^##\s*", re.M)
 # Inside a single entry we may have "\n  Time: ..." / "\n  Location: ..." lines.
 
 
-def _slice_entries(block: str, tag: str, keep_k: int) -> str:
-    """Given the body of a "## Relevant Scenes:" / "## Relevant Items:"
-    section (without the header), keep only the first `keep_k` entries and
-    re-number them 1..keep_k.
-
-    The body format produced by stage6 is:
-        "[<Tag> 1] ...\n  Time: ...\n\n[<Tag> 2] ...\n\n..."
-    with "\n\n" as entry separator. We split on the entry-start marker at
-    line start, not on blank lines, so multi-line entries stay intact.
-    """
-    entry_start_re = re.compile(rf"^\[{re.escape(tag)} \d+\]", re.M)
-    # find all start offsets
-    starts = [m.start() for m in entry_start_re.finditer(block)]
-    if not starts:
-        return block.rstrip()
-    if keep_k <= 0:
-        return f"No relevant {tag.lower()}s found."
-    if keep_k >= len(starts):
-        kept = starts
-    else:
-        kept = starts[:keep_k]
-    # slice each entry
-    entries = []
-    for i, s in enumerate(kept):
-        e = starts[i + 1] if i + 1 < len(kept) else (
-            starts[len(kept)] if len(kept) < len(starts) else len(block)
-        )
-        chunk = block[s:e].rstrip()
-        # re-number
-        chunk = re.sub(rf"^\[{re.escape(tag)} \d+\]", f"[{tag} {i+1}]", chunk, count=1)
-        entries.append(chunk)
-    return "\n\n".join(entries)
-
-
 def _replace_section(ctx: str, header_re: re.Pattern, tag: str, keep_k: int) -> str:
     """Replace the body between ``header`` and the next ``## `` (or EOS) with
     only the first ``keep_k`` entries, preserving the original surrounding

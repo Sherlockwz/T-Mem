@@ -41,9 +41,6 @@ class MemoryItemExtractResult:
             "reasoning": self.reasoning,
         }
 
-    def get_items_as_text(self) -> List[str]:
-        return [item.to_text() for item in self.items]
-
 
 class MemoryItemExtractor:
     """Topic-based memory-item extractor; emitted items carry scene_ids for downstream graph linking."""

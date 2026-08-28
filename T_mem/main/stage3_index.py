@@ -223,7 +223,7 @@ def build_bm25_index_for_single_conv(
 
         if not all_corpus:
             console.print(f"  [yellow][!] Conversation {conv_id}: no documents, skipping index creation[/yellow]")
-            return False
+            return (False, "failed")
 
         bm25 = BM25Okapi(all_corpus)
 
@@ -291,7 +291,7 @@ async def build_bm25_index_for_memory_graph(
                 elif status == "completed":
                     progress.update(task_id, status="[green]done[/green]", completed=1)
                 else:
-                    progress.update(task_id, status="[yellow]skipped[/yellow]", completed=1)
+                    progress.update(task_id, status="[red]failed[/red]", completed=1)
 
             return (conv_id, success, status)
 

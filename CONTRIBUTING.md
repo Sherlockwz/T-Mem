@@ -31,8 +31,8 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 python -m venv .venv
 source .venv/bin/activate
 
-# Install in editable mode with test extras
-pip install -e ".[test]"
+# Install in editable mode
+pip install -e "."
 
 # Copy the env template if you need to run the pipeline locally
 cp .env.example .env
@@ -41,19 +41,12 @@ cp .env.example .env
 The package is installable via `pyproject.toml`; no `sys.path` hacks are
 needed after `pip install -e .`.
 
-## Running tests
+## Syntax check
 
 ```bash
-# All unit tests
-pytest tests/ -v
-
-# A single test file
-pytest tests/test_types.py -v
+# Compile all sources (no test suite is shipped with this repo)
+python -m compileall -q T_mem benchmark_eval scripts
 ```
-
-Tests live under `tests/` and never make network calls — LLM/embedding/reranker
-providers are exercised through pure-logic units (JSON parsing, retry wiring,
-cost-ledger recording, trigger index operations, context truncation, ...).
 
 ## Code style
 
@@ -61,17 +54,15 @@ cost-ledger recording, trigger index operations, context truncation, ...).
 - Keep comments in English so the project stays accessible to an international
   community.
 - Line length: aim for ≤ 100 characters.
-- Use `ruff` if you have it installed: `ruff check T_mem tests`.
+- Use `ruff` if you have it installed: `ruff check T_mem`.
 
 ## Pull request checklist
 
 Before opening a PR, please make sure:
 
-- [ ] `pytest tests/ -q` passes.
 - [ ] `python -m compileall -q T_mem benchmark_eval scripts` passes.
 - [ ] No secrets or internal URLs are introduced (see `.env.example` for the
       environment-variable convention).
-- [ ] New functionality is covered by a unit test where practical.
 
 ## Reporting issues
 

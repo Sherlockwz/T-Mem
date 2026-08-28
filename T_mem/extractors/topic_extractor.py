@@ -44,18 +44,12 @@ class SimilarSceneResult:
     similar_scenes: List[SimilarScene]
     reasoning: str
 
-    def get_scene_ids(self) -> List[str]:
-        return [mc.scene_id for mc in self.similar_scenes]
-
 
 @dataclass
 class SimilarTopicResult:
     has_similar: bool
     similar_topics: List[SimilarTopic]
     reasoning: str
-
-    def get_topic_ids(self) -> List[str]:
-        return [s.topic_id for s in self.similar_topics]
 
 
 @dataclass

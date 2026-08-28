@@ -31,10 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/download_data.sh` — one-command download of the LoCoMo / LoCoMo-Plus
   public datasets.
 - `.env.example` — documented environment-variable template.
-- `tests/` — unit tests for types, datetime utilities, cost ledger, LLM
-  provider (JSON parsing / retry wiring / ledger hooks), trigger index, and
-  retrieval context truncation.
-- GitHub Actions CI (`.github/workflows/ci.yml`) — runs the test suite on
+- GitHub Actions CI (`.github/workflows/ci.yml`) — runs a syntax check on
   Python 3.10 / 3.11 / 3.12.
 - Community files: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue templates.
 

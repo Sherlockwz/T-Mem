@@ -360,7 +360,7 @@
   <h2>Construct, then retrieve top-down</h2>
   <p class="lead">A four-stage write pipeline builds a typed memory graph over scenes, items, and topic labels. At read time, a top-down <span class="mono">topic → scene → item</span> cascade fuses lexical and dense rankings with RRF, and the associative triggers bypass the topic prefilter — so relevance-bound cues aren't gated by the very similarity test they're designed to escape.</p>
   <figure>
-    <img src="assets/figure2.png" alt="T-Mem framework: construction pipeline and retrieval cascade" />
+    <img src="../assets/figure2.png" alt="T-Mem framework: construction pipeline and retrieval cascade" />
     <figcaption><strong>Framework of T-Mem.</strong> The construction pipeline segments scenes, assigns topics, extracts items, and instantiates one trigger family per quadrant (scene-node colours indicate topic membership). The retrieval cascade performs top-down topic → scene → item selection with associative-trigger augmentation.</figcaption>
   </figure>
 
@@ -446,11 +446,11 @@
 
   <div class="figrow">
     <figure>
-      <img src="assets/figure5_token_accuracy.png" alt="Input tokens vs accuracy: T-Mem reaches higher accuracy below HyperMem's token budget" />
+      <img src="../assets/figure5_token_accuracy.png" alt="Input tokens vs accuracy: T-Mem reaches higher accuracy below HyperMem's token budget" />
       <figcaption><strong>Efficiency.</strong> Input tokens vs. accuracy (log x-axis). Below HyperMem's token budget, T-Mem reaches higher accuracy on both benchmarks.</figcaption>
     </figure>
     <figure>
-      <img src="assets/figure3_ablation.png" alt="Component ablations on LoCoMo and LoCoMo-Plus" />
+      <img src="../assets/figure3_ablation.png" alt="Component ablations on LoCoMo and LoCoMo-Plus" />
       <figcaption><strong>Ablations.</strong> Smaller radius = greater impact. The scene triggers dominate on LoCoMo-Plus; no single switch dominates on LoCoMo.</figcaption>
     </figure>
   </div>

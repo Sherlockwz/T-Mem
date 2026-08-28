@@ -44,11 +44,6 @@ console = Console()
 MAX_EXTRACTION_RETRIES = 2
 
 
-class TopicExtractorType:
-    LLM = "llm"
-    RETRIEVAL = "retrieval"
-
-
 def serialize_to_json(obj):
     """Recursively serialize an object to a JSON-compatible dictionary"""
     if obj is None:
@@ -228,8 +223,6 @@ def load_scenes_from_json(file_path: str) -> List[Scene]:
 async def extract_topics_for_scenes(
     scenes: List[Scene],
     llm_provider: LLMProvider,
-    extractor_type: str = TopicExtractorType.LLM,
-    embedding_provider=None,
     progress: Optional[Progress] = None,
     task_id: Optional[int] = None
 ) -> Optional[TopicExtractResult]:
@@ -379,8 +372,6 @@ async def process_single_conversation(
     scenes_file: Path,
     save_dir: Path,
     llm_provider: LLMProvider,
-    extractor_type: str = TopicExtractorType.LLM,
-    embedding_provider=None,
     progress: Optional[Progress] = None,
     conv_task_id: Optional[int] = None,
     skip_existing: bool = True,
@@ -431,8 +422,6 @@ async def process_single_conversation(
             topic_result = await extract_topics_for_scenes(
                 scenes=scenes,
                 llm_provider=llm_provider,
-                extractor_type=extractor_type,
-                embedding_provider=embedding_provider,
                 progress=progress,
                 task_id=conv_task_id
             )
@@ -572,8 +561,6 @@ async def process_conversation_with_semaphore(
     scenes_file: Path,
     save_dir: Path,
     llm_provider: LLMProvider,
-    extractor_type: str = TopicExtractorType.LLM,
-    embedding_provider=None,
     progress: Optional[Progress] = None,
     conv_task_id: Optional[int] = None,
     skip_existing: bool = True,
@@ -589,8 +576,6 @@ async def process_conversation_with_semaphore(
             scenes_file=scenes_file,
             save_dir=save_dir,
             llm_provider=llm_provider,
-            extractor_type=extractor_type,
-            embedding_provider=embedding_provider,
             progress=progress,
             conv_task_id=conv_task_id,
             skip_existing=skip_existing,
@@ -607,8 +592,6 @@ async def main():
     console.print("\n[bold cyan]" + "="*80 + "[/bold cyan]")
     console.print("[bold cyan]Stage 2: Memory Graph Extraction[/bold cyan]")
     console.print("[bold cyan]" + "="*80 + "[/bold cyan]\n")
-
-    extractor_type = TopicExtractorType.RETRIEVAL
 
     scenes_dir = config.scenes_dir()
     memory_graph_dir = config.memory_graph_dir()
@@ -630,36 +613,19 @@ async def main():
     skip_existing = True
 
     console.print(f"[bold]Experiment name:[/bold] {config.experiment_name}")
-    console.print(f"[bold]Topic extractor type:[/bold] {extractor_type}")
     console.print(f"[bold]Number of conversations:[/bold] {config.num_conv}")
     console.print(f"[bold]Concurrency:[/bold] {max_concurrent_tasks}")
     console.print(f"[bold]Skip existing:[/bold] {'Yes' if skip_existing else 'No'}")
     console.print("[bold]Pipeline:[/bold] scene → topic → item → memory graph\n")
 
     llm_config = config.llm_config[config.llm_service].copy()
-    provider_type = llm_config.pop('llm_provider', 'openai')
+    llm_config.pop('llm_provider', None)  # not a LLMProvider kwarg
     llm_config['enable_stats'] = True
-    llm_provider = LLMProvider(provider_type=provider_type, **llm_config)
-
-    embedding_provider = None
-    if extractor_type == TopicExtractorType.RETRIEVAL:
-        try:
-            from T_mem.llm.embedding_provider import EmbeddingProvider
-            embedding_config = config.embedding_config
-            embedding_provider = EmbeddingProvider(
-                base_url=embedding_config["base_url"],
-                model_name=embedding_config["model_name"]
-            )
-            console.print("[green][OK][/green] Embedding Provider initialized successfully\n")
-        except Exception as e:
-            console.print(f"[red][X] Failed to initialize Embedding Provider: {e}[/red]")
-            console.print("[yellow][!] Falling back to LLM version[/yellow]\n")
-            extractor_type = TopicExtractorType.LLM
+    llm_provider = LLMProvider(**llm_config)
 
     console.print("[bold cyan]" + "="*80 + "[/bold cyan]")
     console.print("[bold cyan]Final Configuration[/bold cyan]")
     console.print("[bold cyan]" + "="*80 + "[/bold cyan]")
-    console.print(f"[bold]Topic extractor type:[/bold] {extractor_type}")
     console.print(f"[bold]Scene directory:[/bold] {scenes_dir}")
     console.print(f"[bold]Memory graph save directory:[/bold] {memory_graph_dir}")
     console.print(f"[bold]Item cache directory:[/bold] {items_dir}")
@@ -714,8 +680,6 @@ async def main():
                 scenes_file=scene_file,
                 save_dir=memory_graph_dir,
                 llm_provider=llm_provider,
-                extractor_type=extractor_type,
-                embedding_provider=embedding_provider,
                 progress=progress,
                 conv_task_id=task_id,
                 skip_existing=skip_existing,

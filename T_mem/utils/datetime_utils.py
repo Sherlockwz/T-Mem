@@ -20,31 +20,12 @@ def get_now_with_timezone() -> datetime.datetime:
     return datetime.datetime.now(tz=timezone)
 
 
-def to_timezone(dt: datetime.datetime, tz: ZoneInfo = None) -> datetime.datetime:
-    if tz is None:
-        tz = timezone
-    return dt.astimezone(tz)
-
-
 def to_iso_format(dt: datetime.datetime) -> str:
     if dt is None:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone)
     return dt.astimezone(timezone).isoformat()
-
-
-def from_timestamp(timestamp: int | float) -> datetime.datetime:
-    if timestamp >= 1e12:
-        timestamp_seconds = timestamp / 1000.0
-    else:
-        timestamp_seconds = timestamp
-
-    return datetime.datetime.fromtimestamp(timestamp_seconds, tz=timezone)
-
-
-def to_timestamp(dt: datetime.datetime) -> int:
-    return int(dt.timestamp())
 
 
 def to_timestamp_ms(dt: datetime.datetime) -> int:

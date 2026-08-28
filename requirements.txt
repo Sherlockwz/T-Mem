@@ -5,15 +5,17 @@
 ##
 ## Notes:
 ##   - All external services (LLM / Embedding / Reranker) are accessed through
-##     OpenAI-compatible endpoints; no provider-specific SDK is required.
-##   - json_repair is optional and used for LLM JSON-output tolerance.
+##     OpenAI-compatible endpoints via plain HTTP; no provider-specific SDK is
+##     required.
+##   - Everything under "core runtime" is imported unconditionally by the
+##     build / retrieval / evaluation pipeline.
+##   - Everything under "optional" is imported behind a try/except and only
+##     enables an extra capability; the pipeline still runs without it.
 
 ## ---- core runtime ----
-openai>=1.30.0
 pydantic>=2.5.0
 python-dotenv>=1.0.0
 requests>=2.31.0
-aiohttp>=3.9.0
 urllib3>=2.0.0
 rich>=13.7.0
 
@@ -23,6 +25,19 @@ numpy>=1.24.0
 ## ---- text / embedding / retrieval ----
 nltk>=3.8.1
 rank_bm25>=0.2.2
+## rapidfuzz backs the fuzzy near-duplicate merge in the Entity/Bridge trigger
+## index; without it that pass silently degrades to exact-match dedup only.
+rapidfuzz>=3.6.0
 
-## ---- optional: JSON repair (LLM output tolerance) ----
+## ---- optional: LLM JSON-output tolerance ----
 json_repair>=0.25.0
+
+## ---- optional: accurate token accounting (T_MEM_COST_LOG) ----
+## Without tiktoken the cost ledger falls back to a character-based estimate.
+tiktoken>=0.7.0
+
+## ---- optional: evaluation reporting ----
+## pandas -> spreadsheet/metrics export in benchmark_eval/locomo/runner
+## tqdm   -> judge progress bars (falls back to a no-op wrapper)
+pandas>=2.0.0
+tqdm>=4.66.0

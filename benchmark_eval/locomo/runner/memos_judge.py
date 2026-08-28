@@ -1,5 +1,10 @@
 """LLM-as-judge scorer for LoCoMo predictions (MemOS protocol; CORRECT/WRONG).
-Aggregates mean ± std over --num-runs passes; default judge = T_mem.config.MODELS['locomo_judge']."""
+Aggregates mean ± std over --num-runs passes; default judge = T_mem.config.MODELS['locomo_judge'].
+
+Grader prompt and metric definitions follow the upstream MemOS LoCoMo harness
+(https://github.com/MemTensor/MemOS, evaluation/scripts/locomo/) so that scores
+are directly comparable with published numbers.
+"""
 
 import argparse
 import json
@@ -27,7 +32,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 from T_mem.config import MODELS  # noqa: E402
 
 
-def call_llm(prompt: str, model: str = None, temperature: float = 0.0, max_tokens: int = 512) -> str:
+def call_llm(prompt: str, model: str = None, temperature: float = 0.0) -> str:
     """Call an OpenAI-compatible chat/completions endpoint (see T_mem.llm.llm_provider)."""
     from T_mem.llm.llm_provider import chat_completion
 

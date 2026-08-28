@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
-    import numpy as np  # optional — only used in save_embeddings/load_embeddings
+    import numpy as np  # optional — only used by the *_embeddings_triview helpers
 except ImportError:  # pragma: no cover
     np = None  # type: ignore
 
@@ -157,7 +157,6 @@ class TriggerGraph:
                 if target.id != eb.id:
                     target.merge_from(eb)
                     redirect[eb.id] = target.id
-                merged = True
                 continue
 
             if fuzz is not None:
@@ -234,71 +233,6 @@ class TriggerGraph:
     def load(cls, path: Path | str) -> "TriggerGraph":
         with open(path, "r", encoding="utf-8") as f:
             return cls.from_dict(json.load(f))
-
-    def save_embeddings(
-        self,
-        path: Path | str,
-        embeddings: Dict[str, "np.ndarray"],
-    ) -> None:
-        """Save trigger id -> embedding as npz (ids, embeddings, levels)."""
-        if np is None:
-            raise RuntimeError("numpy is required to save embeddings")
-        p = Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        ids: List[str] = []
-        mats: List["np.ndarray"] = []
-        levels: List[int] = []
-        for tid, emb in embeddings.items():
-            if tid not in self.entity_bridge_triggers:
-                continue
-            levels.append(1)
-            ids.append(tid)
-            mats.append(np.asarray(emb, dtype=np.float32))
-        if not ids:
-            raise ValueError("no embeddings to save")
-        matrix = np.stack(mats, axis=0)
-        np.savez(
-            p,
-            ids=np.array(ids, dtype=object),
-            embeddings=matrix,
-            levels=np.array(levels, dtype=np.int8),
-        )
-
-    @classmethod
-    def load_embeddings(
-        cls, path: Path | str
-    ) -> Tuple[List[str], "np.ndarray", List[int]]:
-        if np is None:
-            raise RuntimeError("numpy is required to load embeddings")
-        data = np.load(path, allow_pickle=True)
-        ids = list(data["ids"])
-        embeddings = data["embeddings"]
-        levels = list(data["levels"])
-        return ids, embeddings, levels
-
-    @classmethod
-    def load_embeddings_with_bridge(
-        cls, path: Path | str
-    ) -> Tuple[List[str], "np.ndarray", List[int], Optional["np.ndarray"]]:
-        """Like :meth:`load_embeddings`, but also returns the optional bridge view.
-
-        Returns ``(ids, emb_concept, levels, emb_bridge_or_None)``.
-        """
-        if np is None:
-            raise RuntimeError("numpy is required to load embeddings")
-        data = np.load(path, allow_pickle=True)
-        ids = list(data["ids"])
-        embeddings = data["embeddings"]
-        levels = list(data["levels"])
-        emb_bridge = None
-        if "embeddings_bridge" in data.files:
-            emb_bridge = data["embeddings_bridge"]
-            if emb_bridge.shape != embeddings.shape:
-                raise ValueError(
-                    f"embeddings_bridge shape {emb_bridge.shape} does not "
-                    f"match embeddings shape {embeddings.shape} in {path}"
-                )
-        return ids, embeddings, levels, emb_bridge
 
     def save_embeddings_triview(
         self,
