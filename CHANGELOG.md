@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated the README, citation metadata, and project page for acceptance to
+  the EMNLP 2026 Main Conference, including camera-ready model comparisons.
+- Restyled the project page with a light academic layout and refreshed the
+  Pipeline Explorer, preserving its pre-computed demonstration artifacts.
+- Rendered all five figures from the camera-ready manuscript assets and
+  restored site-local images inside the GitHub Pages publishing directory.
+
 - **Providers rewritten to be OpenAI-compatible.** LLM / embedding / reranker
   calls now speak the standard OpenAI protocol
   (`/chat/completions`, `/embeddings`, `/rerank`) against any endpoint

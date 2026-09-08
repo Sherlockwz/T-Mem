@@ -27,7 +27,7 @@ preferred-citation:
     - family-names: Xu
       given-names: Yu
   journal: "arXiv preprint arXiv:2606.15405"
-  notes: "Under review at EMNLP 2026."
+  notes: "Accepted to the EMNLP 2026 Main Conference; camera-ready version submitted."
   year: 2026
   url: "https://arxiv.org/abs/2606.15405"
 url: "https://github.com/Sherlockwz/T-Mem"

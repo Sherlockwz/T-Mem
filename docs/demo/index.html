@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>T-Mem · Pipeline Explorer</title>
 <meta name="description" content="Walk a real LoCoMo conversation through the T-Mem pipeline: scenes, extracted facts, and all four trigger families — using pre-computed artifacts from the paper's runs." />
+<meta name="theme-color" content="#07131d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -167,6 +168,7 @@
   .hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
   @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
+<link rel="stylesheet" href="explorer.css" />
 </head>
 <body>
 
@@ -180,12 +182,12 @@
 </div></nav>
 
 <header><div class="wrap">
-  <div class="eyebrow">Pipeline Explorer</div>
+  <div class="eyebrow"><span class="signal" aria-hidden="true"></span> T-Mem / Memory Lab <span class="venue-label">EMNLP 2026 Main</span></div>
   <h1>Watch a conversation become memory</h1>
   <p class="tagline">A real LoCoMo conversation, walked through the T-Mem write pipeline stage by stage — segmented scenes, extracted facts, and all four trigger families. Then a few real questions answered from the memory graph.</p>
   <div class="viewtabs">
-    <button class="viewtab active" id="tab-explore" onclick="setView('explore')">Explorer</button>
-    <button class="viewtab" id="tab-runlocal" onclick="setView('runlocal')">Run locally</button>
+    <button type="button" class="viewtab active" id="tab-explore" aria-pressed="true" onclick="setView('explore')">Explorer</button>
+    <button type="button" class="viewtab" id="tab-runlocal" aria-pressed="false" onclick="setView('runlocal')">Run locally</button>
   </div>
   <div class="notice" id="notice"><b>Pre-computed artifacts.</b> This explorer renders stored outputs from the paper's runs (memory-construction LLM: GPT-4.1-mini; encoder: bge-m3). Building memory live needs LLM API keys — the <b>Run locally</b> tab shows how to reproduce it end-to-end.</div>
 </div></header>
@@ -223,12 +225,16 @@ function setView(v){
   view=v;
   document.getElementById("tab-explore").classList.toggle("active",v==="explore");
   document.getElementById("tab-runlocal").classList.toggle("active",v==="runlocal");
+  document.getElementById("tab-explore").setAttribute("aria-pressed",String(v==="explore"));
+  document.getElementById("tab-runlocal").setAttribute("aria-pressed",String(v==="runlocal"));
+  history.replaceState(null,"",v==="runlocal"?"#runlocal":location.pathname);
   render();
 }
 
 function render(){
   if(view==="runlocal"){renderRunLocal();return;}
   const app=document.getElementById("app");
+  if(!DATA){app.innerHTML='<div class="loading" role="status">Loading pipeline artifacts…</div>';return;}
   const c=DATA.conversation, s=DATA.scenes[sceneIdx];
   app.innerHTML = `
     <div class="chips">
@@ -240,17 +246,17 @@ function render(){
     </div>
     <p class="hint">Pick a scene, then step through the pipeline. Showing ${DATA.scenes.length} representative scenes from this conversation.</p>
     <div class="picker">${DATA.scenes.map((sc,i)=>`
-      <button class="scenebtn ${i===sceneIdx?'active':''}" onclick="pickScene(${i})">
+      <button type="button" class="scenebtn ${i===sceneIdx?'active':''}" aria-pressed="${i===sceneIdx}" onclick="pickScene(${i})">
         <div class="idx">scene ${String(i+1).padStart(2,'0')}</div>
         <div class="t">${esc(sceneTitle(sc.subject))}</div>
       </button>`).join('')}
     </div>
 
-    <div class="rail">${STAGES.map(st=>`
-      <div class="step ${st.id===stage?'active':''}" onclick="pickStage('${st.id}')">
+    <div class="rail" role="group" aria-label="Pipeline stages">${STAGES.map(st=>`
+      <button type="button" class="step ${st.id===stage?'active':''}" data-stage="${st.id}" aria-pressed="${st.id===stage}" onclick="pickStage('${st.id}')">
         <div class="n">${st.n}</div>
         <div class="lbl ${st.cls}">${st.lbl}</div>
-      </div>`).join('')}
+      </button>`).join('')}
     </div>
 
     <div id="stagebody"></div>
@@ -307,15 +313,24 @@ function renderStage(){
   }
 
   document.getElementById("stagebody").innerHTML = `
-    <div class="panel show">
+    <div class="panel show" aria-label="${st.lbl}">
+      <div class="stage-progress">STAGE ${st.n} / 06 <span>${st.id==='qa'?'RETRIEVAL':'CONSTRUCTION'}</span></div>
       <div class="panel-h"><h2>${st.lbl}</h2>${st.tag?`<span class="tag ${st.tagcls}">${st.tag}</span>`:''}</div>
       <p class="panel-sub">${st.sub}</p>
       ${body}
     </div>`;
 }
 
-function pickScene(i){sceneIdx=i;render();}
-function pickStage(id){stage=id;render();}
+function pickScene(i){sceneIdx=i;render();document.querySelector('.scenebtn.active').focus({preventScroll:true});}
+function pickStage(id){
+  stage=id;
+  document.querySelectorAll('.step').forEach(button=>{
+    const active=button.dataset.stage===id;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+  renderStage();
+}
 
 function renderRunLocal(){
   document.getElementById("app").innerHTML = `
@@ -331,7 +346,10 @@ pip install -r requirements.txt</pre>
       <div class="rstep">
         <h3>Set your API key</h3>
         <p>The construction and QA LLMs read credentials from a git-ignored <span class="mono">.env</span>.</p>
-        <pre># OpenAI-compatible endpoint (chat/completions)
+        <pre># Start from the complete environment template
+cp .env.example .env
+
+# OpenAI-compatible endpoint (chat/completions)
 export T_MEM_LLM_BASE_URL="https://api.openai.com/v1"
 export T_MEM_LLM_API_KEY="sk-..."
 
@@ -341,7 +359,7 @@ export T_MEM_LLM_API_KEY="sk-..."
       </div>
       <div class="rstep">
         <h3>Add the benchmark data</h3>
-        <p>Datasets aren't redistributed here. Drop them under <span class="mono">benchmark_eval/</span>:</p>
+        <p>Download the public datasets with <span class="mono">bash scripts/download_data.sh</span>, or place them at these paths:</p>
         <pre>benchmark_eval/locomo/data/locomo10.json
 benchmark_eval/locomo_plus/data/locomo_plus.json</pre>
       </div>
@@ -360,14 +378,14 @@ benchmark_eval/locomo_plus/data/locomo_plus.json</pre>
     <p class="rl-foot" style="margin-top:18px">Swap <span class="mono">--mode locomo</span> for <span class="mono">locomo_plus</span> to run the other benchmark. Full options are in the <a href="https://github.com/Sherlockwz/T-Mem" style="color:var(--assoc-a)">repository README</a>.</p>`;
 }
 
-fetch("demo_data.json").then(r=>r.json()).then(d=>{
+if(location.hash==="#runlocal")setView("runlocal");
+fetch("demo_data.json").then(r=>{if(!r.ok)throw new Error('Artifacts unavailable');return r.json();}).then(d=>{
     DATA=d;
-    if(location.hash==="#runlocal"){setView("runlocal");}
-    else{render();}
+    render();
   })
-  .catch(e=>{document.getElementById("app").innerHTML=
-    '<div class="loading">Could not load demo data. Serve this folder over HTTP (e.g. <span class="mono">python3 -m http.server</span>) rather than opening the file directly.</div>';});
-window.addEventListener("hashchange",()=>{ if(DATA) setView(location.hash==="#runlocal"?"runlocal":"explore"); });
+  .catch(()=>{if(view!=="runlocal")document.getElementById("app").innerHTML=
+    '<div class="loading" role="alert">The pipeline artifacts could not be loaded. <button type="button" class="viewtab" onclick="location.reload()">Try again</button> You can still use the Run locally guide.</div>';});
+window.addEventListener("hashchange",()=>{setView(location.hash==="#runlocal"?"runlocal":"explore");});
 </script>
 </body>
 </html>

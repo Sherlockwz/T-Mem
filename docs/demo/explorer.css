@@ -1,0 +1,56 @@
+:root {
+  color-scheme: dark;
+  --ink:#07131d; --ink-2:#0d202d; --ink-3:#153344;
+  --paper:#e7f2f7; --muted:#a2b8c7; --descr:#99baff;
+  --assoc-a:#67e2d3; --assoc-b:#b49bff;
+  --line:rgba(151,208,224,.2); --line-2:rgba(151,208,224,.11);
+  --grad-assoc:linear-gradient(110deg,#78e8d8,#9dc2fd);
+}
+body { background-image:radial-gradient(ellipse at 80% 0,rgba(40,124,154,.15),transparent 55%),linear-gradient(rgba(135,198,214,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(135,198,214,.035) 1px,transparent 1px);background-size:auto,44px 44px,44px 44px; }
+nav { background:rgba(7,19,29,.96);border-bottom-color:var(--line); }
+header { padding-top:42px; }
+.eyebrow { display:flex;align-items:center;flex-wrap:wrap;gap:12px;color:var(--assoc-a); }
+.signal { display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--assoc-a);box-shadow:0 0 13px rgba(103,226,211,.55); }
+.venue-label { margin-left:auto;letter-spacing:.06em;color:var(--muted);font-size:11px; }
+.tagline { max-width:840px;line-height:1.75; }
+.notice { border-radius:5px;border-left:2px solid var(--assoc-a);background:rgba(13,32,45,.9);font-size:14px; }
+.viewtabs { border-radius:5px; }
+.viewtab { border-radius:3px; }
+.chips { gap:10px; }
+.chip { border-radius:3px;background:rgba(13,32,45,.85);padding:7px 11px; }
+.picker { display:grid;grid-template-columns:repeat(3,minmax(0,1fr)); }
+.scenebtn { max-width:none;border-radius:5px;background:rgba(13,32,45,.9); }
+.scenebtn .idx { font-size:12px; }
+.scenebtn .t { font-size:14px; }
+.scenebtn.active { background:#123d49;color:var(--paper);border:1px solid var(--assoc-a); }
+.rail { border-radius:5px;gap:0;padding:0;overflow:hidden;background:rgba(10,29,42,.92); }
+.step { border:0;border-right:1px solid var(--line-2);border-radius:0;background:transparent;color:var(--paper);text-align:left;min-height:91px;position:relative;font:inherit;padding:15px 13px; }
+.step:last-child { border-right:0; }
+.step.active { background:#143344;border-color:var(--line);box-shadow:inset 0 -2px var(--assoc-a); }
+.step .n { color:var(--assoc-a);font-size:12px; }
+.step .lbl { font-size:14px; }
+.panel { border:1px solid var(--line);background:rgba(7,19,29,.88);padding:24px;border-radius:5px; }
+.stage-progress { display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:22px;color:var(--assoc-a);font:500 12px/1.5 "IBM Plex Mono",monospace;letter-spacing:.13em; }
+.stage-progress span { color:var(--muted); }
+.panel-h { flex-wrap:wrap; }.panel-h .tag { font-size:12px; }
+.panel-sub { font-size:15px;line-height:1.7; }
+.turns,.sumcard,.item,.attr,.chan,.qa,.rstep { border-radius:5px; }
+.turn { line-height:1.75;font-size:15px; }
+.item .c,.attr .v,.chan .v,.sumcard p,.qa .a { font-size:15px;line-height:1.7; }
+.item .kind,.kw span,.trig-row .tl,.attr .k,.chan .k,.chan .conf { font-size:12px; }
+.trig-chip,.hint,.rl-note,.rl-foot,.rstep p { font-size:14px; }
+.sumcard .lab { font-size:12px; }
+.chan { background:linear-gradient(135deg,rgba(117,102,182,.14),rgba(13,32,45,.65));border-color:rgba(180,155,255,.3); }
+.chan .k { background:none;color:#c4b2ff; }
+.qa .q { color:var(--paper);font-size:16px; }.qa .ret { font-size:12px; }
+.rstep { background:rgba(13,32,45,.9); }.rstep::before { border-radius:3px; }
+pre { border-radius:4px;font-size:13px; }
+button:focus-visible,a:focus-visible { outline:2px solid var(--assoc-a);outline-offset:4px; }
+@media(max-width:640px) {
+  .wrap { padding-inline:16px; }.venue-label { margin-left:0; }
+  .rail { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }.step { min-width:0;border-bottom:1px solid var(--line-2); }
+  .panel { padding:16px; }.picker { display:grid;grid-template-columns:1fr 1fr; }.scenebtn { max-width:none; }
+  .turn { display:grid;grid-template-columns:1fr auto;gap:5px 9px;padding:12px; }.turn>span:last-child { grid-column:1 / -1; }
+  .turn .sp,.turn .did { min-width:0; }.grid,.attrs,.channels { grid-template-columns:minmax(0,1fr); }
+  .rstep { padding:18px 16px 18px 48px; }.qa .a { padding-left:17px; }
+}

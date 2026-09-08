@@ -41,7 +41,7 @@ cost = ["tiktoken>=0.7.0"]
 eval = ["pandas>=2.0.0", "tqdm>=4.66.0"]
 
 [project.urls]
-Homepage = "https://github.com/Sherlockwz/T-Mem"
+Homepage = "https://sherlockwz.github.io/T-Mem/"
 Repository = "https://github.com/Sherlockwz/T-Mem"
 Paper = "https://arxiv.org/abs/2606.15405"
 

@@ -1,25 +1,27 @@
-# 🧠 T-Mem: Memory That Anticipates, Not Archives
+# T-Mem: Memory That Anticipates, Not Archives
 
 <div align="center">
 
-### The first long-term conversational memory that covers both *descriptive* and *associative* recall — reaching state-of-the-art on LoCoMo and LoCoMo-Plus.
+### EMNLP 2026 · Main Conference
+
+Long-term conversational memory for both *descriptive* and *associative* recall.
 
 [![Paper](https://img.shields.io/badge/Paper-arXiv-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2606.15405)
 [![Code](https://img.shields.io/badge/Code-GitHub-181717?logo=github&logoColor=white)](https://github.com/Sherlockwz/T-Mem)
-[![Project Page](https://img.shields.io/badge/Blog-Project%20Page-4b6cb7?logo=readthedocs&logoColor=white)](https://sherlockwz.github.io/T-Mem/)
+[![Project Page](https://img.shields.io/badge/Project-Page-185b70?logo=readthedocs&logoColor=white)](https://sherlockwz.github.io/T-Mem/)
 [![Demo](https://img.shields.io/badge/Demo-Pipeline%20Explorer-7c3aed?logo=rocket&logoColor=white)](https://sherlockwz.github.io/T-Mem/demo/)
-[![Venue](https://img.shields.io/badge/Status-Under%20review-8a97b0?logo=acclaim&logoColor=white)](https://arxiv.org/abs/2606.15405)
+[![Venue](https://img.shields.io/badge/EMNLP%202026-Main%20Conference-226a59)](https://arxiv.org/abs/2606.15405)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
 
 ---
 
-## 🥳 News
+## News
 
+- **[2026-09]** Accepted to the **EMNLP 2026 Main Conference**. Camera-ready submitted; project page and results updated to the final manuscript.
 - **[2026-07-31]** Code and project page released.
 - **[2026-06-15]** Paper available on [arXiv](https://arxiv.org/abs/2606.15405).
-- **[2026-05]** T-Mem submitted to **EMNLP 2026** (under review).
 
 ---
 
@@ -96,11 +98,34 @@ is reached from *what* is reached.
 | Benchmark | Overall (LLM-judge) | vs. best baseline |
 |-----------|:-------------------:|:-----------------:|
 | **LoCoMo** | **80.26%** | +3.25 pp over HyperMem |
-| **LoCoMo-Plus** | **74.81%** | State-of-the-art |
+| **LoCoMo-Plus (Cognitive)** | **74.81%** | +26.18 pp over HyperMem |
 
 Token-level F1 on LoCoMo is **51.96**, corroborating the LLM-judge ranking. See the
 [paper](https://arxiv.org/abs/2606.15405) for full per-question-type breakdowns,
 ablations, and efficiency analysis.
+
+These are the main-paper results with **GPT-4.1-mini for memory construction**.
+LoCoMo uses GPT-4o-mini for QA and judging (three runs); LoCoMo-Plus uses GPT-4o
+for QA and Gemini-2.5-Flash for judging. The cross-benchmark gap is **5.45 pp**.
+
+#### Additional camera-ready experiments
+
+The final manuscript also reports model sensitivity and a separate QA-protocol
+comparison. These settings are not interchangeable with the main table:
+
+| Construction / QA | LoCoMo Overall | Evaluation setting |
+|-------------------|:--------------:|--------------------|
+| GPT-4.1 / GPT-4o-mini | 78.31% | Model cross-comparison; GPT-4o-mini judge |
+| GPT-4.1 / GPT-4.1 | 82.51% | Model cross-comparison; GPT-4o-mini judge |
+| GPT-5.1 / GPT-4o-mini | 81.36% | Model cross-comparison; GPT-4o-mini judge |
+| GPT-5.1 / GPT-5.1 | **84.85%** | Model cross-comparison; GPT-4o-mini judge |
+| Qwen3-32B / GPT-4o-mini | 75.45% | Open-weight build-model swap; GPT-4o-mini judge |
+
+Under **HyperMem's GPT-4.1-mini + seven-step CoT QA protocol**, T-Mem reaches
+**93.70%** accuracy / **16.97** F1, versus HyperMem's reported 92.73% / 15.78.
+That longer-answer protocol is shown separately from the official-protocol
+80.26% / 51.96 result. See the [project page](https://sherlockwz.github.io/T-Mem/#model-analysis)
+for the comparison and the paper for full details.
 
 ### Supported Benchmarks
 
@@ -265,6 +290,9 @@ T-Mem/
 
 If you find T-Mem useful in your research, please consider citing:
 
+Accepted to the **EMNLP 2026 Main Conference**. The arXiv citation remains usable
+while the proceedings record is being published.
+
 ```bibtex
 @misc{guo2026tmem,
   title         = {T-Mem: Memory That Anticipates, Not Archives},
@@ -273,6 +301,7 @@ If you find T-Mem useful in your research, please consider citing:
   eprint        = {2606.15405},
   archivePrefix = {arXiv},
   primaryClass  = {cs.CL},
+  note          = {Accepted to EMNLP 2026 Main Conference},
   url           = {https://arxiv.org/abs/2606.15405},
 }
 ```
