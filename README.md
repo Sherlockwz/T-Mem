@@ -95,18 +95,25 @@ is reached from *what* is reached.
 
 ### Key Results
 
-| Benchmark | Overall (LLM-judge) | vs. best baseline |
-|-----------|:-------------------:|:-----------------:|
-| **LoCoMo** | **80.26%** | +3.25 pp over HyperMem |
-| **LoCoMo-Plus (Cognitive)** | **74.81%** | +26.18 pp over HyperMem |
+<img src="assets/figure6_locomo_gap.png" width="95%" alt="LoCoMo vs. LoCoMo-Plus accuracy gap across seven systems"/>
 
-Token-level F1 on LoCoMo is **51.96**, corroborating the LLM-judge ranking. See the
-[paper](https://arxiv.org/abs/2606.15405) for full per-question-type breakdowns,
+The chart reads as follows. For each system, the **green bar** is LoCoMo
+accuracy and the **orange bar** is LoCoMo-Plus (Cognitive) accuracy; the red
+arrow with the number above marks the drop in percentage points when the
+system is moved from the standard benchmark to the cognitive subset.
+**T-Mem falls only 5.45 pp**, while every other system we compare against
+loses between roughly 28 pp and 50 pp. On LoCoMo itself HyperMem is closest
+to T-Mem (77.01%), but it already drops 28.38 pp on LoCoMo-Plus; A-Mem,
+SeCom, Mem0 and the GPT-4o baseline all collapse past 45 pp. The
+cross-benchmark gap — not the absolute score on a single benchmark — is the
+headline.
+
+These are the main-paper results. LoCoMo uses GPT-4o-mini for QA and judging (three runs);
+LoCoMo-Plus uses GPT-4o for QA and Gemini-2.5-Flash for judging. LoCoMo
+token-level F1 is **51.96**, consistent with the LLM-judge ranking. Baseline
+numbers are taken from Li et al. (LoCoMo-Plus, 2026); see the
+[paper](https://arxiv.org/abs/2606.15405) for per-question-type breakdowns,
 ablations, and efficiency analysis.
-
-These are the main-paper results with **GPT-4.1-mini for memory construction**.
-LoCoMo uses GPT-4o-mini for QA and judging (three runs); LoCoMo-Plus uses GPT-4o
-for QA and Gemini-2.5-Flash for judging. The cross-benchmark gap is **5.45 pp**.
 
 #### Additional camera-ready experiments
 
